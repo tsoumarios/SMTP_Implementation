@@ -63,7 +63,11 @@ class ClientReader implements Runnable {
             // while connection is open and NOT IN DATA exchange STATE
             try {
                 DataInputStream dataIn = new DataInputStream(crSocket.getInputStream());
+
                 BYTESin = dataIn.readUTF();
+
+                System.out.println("CLIENT : message FROM SERVER : " + BYTESin);
+
                 if (BYTESin.contains("221")) {
                     System.out.println("...closing socket");
                     crSocket.close();
@@ -123,10 +127,10 @@ class ClientWriter implements Runnable {
                     case 1: {
                         System.out.println("CLIENT WRITER SENDING HELLO");
                         System.out.println("--------------------------");
-                        System.out.println(ConsoleColors.BLUE + "Sending..." + ConsoleColors.RESET + "HELLO" + EC
+                        System.out.println(ConsoleColors.BLUE + "Sending..." + ConsoleColors.RESET + " HELLO" + EC
                                 + ClientDomainName + CRLF);
 
-                        msgToServer = ("HELO" + EC + ClientDomainName + CRLF);
+                        msgToServer = ("HELLO" + EC + ClientDomainName + CRLF);
                         dataOut.writeUTF(msgToServer);
                         dataOut.flush();
                         break;

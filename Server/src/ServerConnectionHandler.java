@@ -1,4 +1,5 @@
 import java.io.DataOutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 
 public class ServerConnectionHandler implements Runnable {
@@ -8,6 +9,7 @@ public class ServerConnectionHandler implements Runnable {
     private static String CommandStack = "";
     socketManager _socketMngObjVar = null;
     ArrayList<socketManager> _active_clients = null;
+    Socket _clientSocket = new Socket();
 
     public ServerConnectionHandler(ArrayList<socketManager> inArrayListVar, socketManager inSocMngVar) {
         _socketMngObjVar = inSocMngVar;
@@ -19,39 +21,38 @@ public class ServerConnectionHandler implements Runnable {
             System.out.println("0 Client " + _socketMngObjVar.soc.getPort() + " Connected");
             System.out.println("0 SERVER : active clients : " + _active_clients.size());
 
-            // DataOutputStream dataToClient = new
-            // DataOutputStream(_active_clients.getOutputStream());
-
             while (!_socketMngObjVar.soc.isClosed()) {
                 String clientMSG = _socketMngObjVar.input.readUTF();
+
                 System.out.println(
                         "SERVER : message FROM CLIENT : " + _socketMngObjVar.soc.getPort() + " --> " + clientMSG);
 
                 // Check for Quit message for client
+
                 if (clientMSG.contains("QUIT")) {
-                    System.out.println("5 SERVER : quiting client");
+                    System.out.println("1 SERVER : QUIT client");
                     //
                     // SYNTAX (page 12 RFC 821)
                     // QUIT <SP> <SERVER domain> <SP> Service closing transmission channel<CRLF>
                     //
                     _socketMngObjVar.output.writeUTF(
                             "221" + LF + ServerDomainName + LF + " Service closing transmission channel" + CRLF);
+                    _socketMngObjVar.output.flush();
                     _active_clients.remove(_socketMngObjVar);
+
                     System.out.print("5 SERVER : active clients : " + _active_clients.size());
                     CommandStack = "";
-
-                    return; // exiting thread
+                    return; // QUIT thread
                 }
                 // Check for Hello message for client
                 else if (clientMSG.contains("HELLO")) {
                     System.out.println("1 SERVER : HELLO client");
 
-                    _socketMngObjVar.output.writeUTF("220" + LF + "Hello, I am" + LF + ServerDomainName + CRLF);
-                    _active_clients.remove(_socketMngObjVar);
-                    System.out.print("1 SERVER : active clients : " + _active_clients.size());
-                    CommandStack = "";
+                    _socketMngObjVar.output.writeUTF(
+                            "250" + LF + ServerDomainName + LF + "Hello, I am" + LF + ServerDomainName + CRLF);
+                    _socketMngObjVar.output.flush();
 
-                    return; // exiting thread
+                    return; // HELLO thread
                 }
 
                 Server_SMTP_Handler(_socketMngObjVar, clientMSG);
