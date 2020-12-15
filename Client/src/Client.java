@@ -117,12 +117,14 @@ class ClientWriter implements Runnable {
         String RCPTEmail = "receip@gmail.com";
         String DataToSend = "This is the body of the message";
         try {
-            System.out.println(
-                    "CLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND 1...HELO 2...MAIL TO 3...RECV FROM 4...DATA 5...msg 6...QUIT");
+            System.out.println("CLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND:" + CRLF + "1...HELO" + CRLF
+                    + " 2...MAIL TO" + CRLF + " 3...RECV FROM" + CRLF + " 4...DATA" + CRLF + "5...msg" + CRLF
+                    + "6...QUIT");
             DataOutputStream dataOut = new DataOutputStream(cwSocket.getOutputStream());
 
+            Scanner user_input = new Scanner(System.in);
             while (!cwSocket.isClosed()) {
-                Scanner user_input = new Scanner(System.in);
+
                 switch (user_input.nextInt()) {
                     case 1: {
                         System.out.println("CLIENT WRITER SENDING HELLO");
@@ -130,7 +132,7 @@ class ClientWriter implements Runnable {
                         System.out.println(ConsoleColors.BLUE + "Sending..." + ConsoleColors.RESET + " HELLO" + EC
                                 + ClientDomainName + CRLF);
 
-                        msgToServer = ("HELLO" + EC + ClientDomainName + CRLF);
+                        msgToServer = ("HELO" + EC + ClientDomainName + CRLF);
                         dataOut.writeUTF(msgToServer);
                         dataOut.flush();
                         break;
@@ -161,8 +163,8 @@ class ClientWriter implements Runnable {
                     case 4: {
                         System.out.println("CLIENT WRITER SENDING DATA");
                         System.out.println("--------------------------");
-                        System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "DATA:" + EC
-                                + DataToSend + CRLF);
+                        System.out
+                                .println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "DATA" + CRLF);
 
                         msgToServer = ("DATA:" + EC + DataToSend + CRLF + "." + CRLF);
                         dataOut.writeUTF(msgToServer);
@@ -186,7 +188,9 @@ class ClientWriter implements Runnable {
                         return;
                     } // case
                 } // switch
+
             } // while
+            user_input.close();
         } // try
         catch (Exception except) {
             // Exception thrown (except) when something went wrong, pushing message to the

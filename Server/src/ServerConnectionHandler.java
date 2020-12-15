@@ -5,6 +5,7 @@ import java.util.ArrayList;
 public class ServerConnectionHandler implements Runnable {
     public static String CRLF = "\r\n";
     public static String LF = "\n";
+    public static String SP = " ";
     public static String ServerDomainName = "ServerDomain.gr";
     private static String CommandStack = "";
     socketManager _socketMngObjVar = null;
@@ -40,19 +41,50 @@ public class ServerConnectionHandler implements Runnable {
                     _socketMngObjVar.output.flush();
                     _active_clients.remove(_socketMngObjVar);
 
-                    System.out.print("5 SERVER : active clients : " + _active_clients.size());
+                    System.out.print("6 SERVER : active clients : " + _active_clients.size());
                     CommandStack = "";
                     return; // QUIT thread
                 }
-                // Check for Hello message for client
-                else if (clientMSG.contains("HELLO")) {
-                    System.out.println("1 SERVER : HELLO client");
+                // Check for Helo message for client
+                else if (clientMSG.contains("HELO")) {
+                    System.out.println("1 SERVER : HELO from client");
 
-                    _socketMngObjVar.output.writeUTF(
-                            "250" + LF + ServerDomainName + LF + "Hello, I am" + LF + ServerDomainName + CRLF);
+                    _socketMngObjVar.output
+                            .writeUTF("250" + SP + ServerDomainName + LF + "Hello, I am " + ServerDomainName + CRLF);
                     _socketMngObjVar.output.flush();
 
                     return; // HELLO thread
+                }
+                // Check for MAIL message for client
+                else if (clientMSG.contains("MAIL")) {
+                    System.out.println("2 SERVER : MAIL FROM client");
+
+                    _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                    _socketMngObjVar.output.flush();
+
+                    return; // MAIL FROM thread
+                }
+                // Check for RCPT message for client
+                else if (clientMSG.contains("RCPT")) {
+                    System.out.println("2 SERVER : RCPT TO from client");
+
+                    _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                    _socketMngObjVar.output.flush();
+
+                    return; // RCPT FROM thread
+                }
+                // Check for DATA message for client
+                else if (clientMSG.contains("DATA")) {
+                    System.out.println("2 SERVER : DATA from client");
+
+                    _socketMngObjVar.output.writeUTF("354 End data with" + LF + " . " + CRLF);
+                    //
+                    // _socketMngObjVar.output.writeUTF("354 End data with" + LF +
+                    // "<CR><LF>.<CR><LF>" + CRLF);
+                    //
+                    _socketMngObjVar.output.flush();
+
+                    return; // RCPT FROM thread
                 }
 
                 Server_SMTP_Handler(_socketMngObjVar, clientMSG);
@@ -101,67 +133,49 @@ public class ServerConnectionHandler implements Runnable {
                 if (clientMSG.contains("QUIT")) {
                     GO_ON_CHECKS = false;
                     CommandStack = "";
-                } else if (clientMSG.length() > 512 && GO_ON_CHECKS) {
-                    sResponceToClient = "500" + CRLF;
-                    System.out.println("error 500 -> Line too long");
-                    SUCCESS_STATE = false;
-                    GO_ON_CHECKS = false;
                 }
-                // error 501 -> Syntax error in parameters or arguments
-                else if (clientMSG.split(" ").length < 1 && GO_ON_CHECKS) {
-                    sResponceToClient = "501" + CRLF;
-                    // System.out.println("error 501 -> Syntax error in parameters or arguments");
-                    SUCCESS_STATE = false;
-                    GO_ON_CHECKS = false;
-                }
-                // error 504 -> Command parameter not implemented
-                else if (clientMSG.length() < 4 && GO_ON_CHECKS) {
-                    sResponceToClient = "504" + CRLF;
-                    // System.out.println("error 504 -> Command parameter not implemented");
-                    SUCCESS_STATE = false;
-                    GO_ON_CHECKS = false;
-                }
-                // error 421 -> <domain> Service not available
-                else if (REQUESTED_DOMAIN_NOT_AVAILABLE && GO_ON_CHECKS) {
-                    sResponceToClient = "421" + CRLF;
-                    String domain_not_found = clientMSG.replaceAll("HELO ", "");
-                    domain_not_found = domain_not_found.replaceAll(CRLF, "");
-                    // System.out.println("error 421 -> "+ domain_not_found +" Service not
-                    // available");
-                    SUCCESS_STATE = false;
-                    GO_ON_CHECKS = false;
-                }
-                // Server received HELLO comand and respond with ok
-                else if (clientMSG.contains("HELO") && GO_ON_CHECKS) {
-                    sResponceToClient = "250" + LF + ServerDomainName + CRLF;
-                    System.out.println("SERVER response: " + sResponceToClient);
-                    SUCCESS_STATE = true;
-                    GO_ON_CHECKS = false;
-                    CommandStack = CommandStack + "HELO ";
-                    System.out.println(CommandStack);
-                }
-                ////////////////////////////////////////////////////////////////////
-                // END HELO
-                ////////////////////////////////////////////////////////////////////
+                // else if (clientMSG.contains("HELO")) {
+                // GO_ON_CHECKS = true;
+                // CommandStack = "";
+            } else if (clientMSG.length() > 512 && GO_ON_CHECKS) {
+                sResponceToClient = "500" + CRLF;
+                System.out.println("error 500 -> Line too long");
+                SUCCESS_STATE = false;
+                GO_ON_CHECKS = false;
+            }
+            // error 501 -> Syntax error in parameters or arguments
+            else if (clientMSG.split(" ").length < 1 && GO_ON_CHECKS) {
+                sResponceToClient = "501" + CRLF;
+                // System.out.println("error 501 -> Syntax error in parameters or arguments");
+                SUCCESS_STATE = false;
+                GO_ON_CHECKS = false;
+            }
+            // error 504 -> Command parameter not implemented
+            else if (clientMSG.length() < 4 && GO_ON_CHECKS) {
+                sResponceToClient = "504" + CRLF;
+                // System.out.println("error 504 -> Command parameter not implemented");
+                SUCCESS_STATE = false;
+                GO_ON_CHECKS = false;
+            }
+            // error 421 -> <domain> Service not available
+            else if (REQUESTED_DOMAIN_NOT_AVAILABLE && GO_ON_CHECKS) {
+                sResponceToClient = "421" + CRLF;
+                String domain_not_found = clientMSG.replaceAll("HELO ", "");
+                domain_not_found = domain_not_found.replaceAll(CRLF, "");
+                // System.out.println("error 421 -> "+ domain_not_found +" Service not
+                // available");
+                SUCCESS_STATE = false;
+                GO_ON_CHECKS = false;
+            }
 
-                // Server received MAIL FROM comand and respond with ok
-                else if (clientMSG.contains("MAIL FROM") && GO_ON_CHECKS) {
-                    sResponceToClient = "250" + LF + ServerDomainName + CRLF;
-                    System.out.println("SERVER responce: " + sResponceToClient);
-                    SUCCESS_STATE = true;
-                    GO_ON_CHECKS = false;
-                    CommandStack = CommandStack + "MAIL FROM ";
-                    System.out.println(CommandStack);
-                }
-                ////////////////////////////////////////////////////////////////////
-                // END MAIL FROM
-                ////////////////////////////////////////////////////////////////////
-
-                clientMSG = ""; // empty buffer after CRLF
-            } // if CRLF
+            clientMSG = ""; // empty buffer after CRLF
 
             sm.output.writeUTF(sResponceToClient);
-        } catch (Exception except) {
+            // if CRLF
+
+        } catch (
+
+        Exception except) {
             // Exception thrown (except) when something went wrong, pushing message to the
             // console
             System.out.println("Error --> " + except.getMessage());
