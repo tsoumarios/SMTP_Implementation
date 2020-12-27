@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -52,6 +53,12 @@ class ClientReader implements Runnable {
     String BYTESin = "";
     String sDataToServer;
 
+    public static Boolean isLogedIn = false;
+
+    public static Boolean isLogedIn() { // This static function return true if a user is veryfied
+        return isLogedIn;
+    }
+
     public ClientReader(Socket inputSoc, AtomicBoolean isDATA) {
         crSocket = inputSoc;
         this.isDATAflag = isDATA;
@@ -66,30 +73,137 @@ class ClientReader implements Runnable {
 
                 BYTESin = dataIn.readUTF();
 
-                System.out.println("CLIENT : message FROM SERVER : " + BYTESin);
-
+                /*****************************************************/
+                // **** Must be implemented with Swith - case *********
                 if (BYTESin.contains("221")) {
+                    System.out.println("SERVER response: " + BYTESin);
                     System.out.println("...closing socket");
                     crSocket.close();
                     return;
+                } else if (BYTESin.contains("101")) {
+                    System.out.println("The server is unable to connect.");
+                } else if (BYTESin.contains("111")) {
+                    System.out.println("Connection refused or inability to open an SMTP stream.");
+                    System.out.println("SERVER response: " + BYTESin);
+                } else if (BYTESin.contains("211")) {
+                    System.out.println("System status message or help reply.");
+                    System.out.println("SERVER response: " + BYTESin);
+                } else if (BYTESin.contains("214")) {
+                    System.out.println("SERVER response: " + BYTESin);
+                } else if (BYTESin.contains("220")) {
+                    System.out.println(ConsoleColors.GREEN + "The server is ready." + ConsoleColors.RESET);
+                    System.out.println("SERVER response: " + BYTESin);
                 } else if (BYTESin.contains("250")) {
-                    System.out.println("OK -> CLIENT going to state SUCCESS");
-                } else if (BYTESin.contains("500"))
-                    System.out.println("SERVER Error--> Syntax error, command unrecognized");
-                else if (BYTESin.contains("501"))
-                    System.out.println("SERVER Error--> Syntax error in parameters or arguments");
-                else if (BYTESin.contains("504"))
-                    System.out.println("SERVER Error--> Command parameter not implemented");
+                    System.out.println("SERVER response: " + BYTESin);
+                    System.out
+                            .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
+                    isLogedIn = true;
+                } else if (BYTESin.contains("251"))
+                    System.out.println("SERVER Error--> User not local will forward");
+                else if (BYTESin.contains("252"))
+                    System.out.println(
+                            "SERVER Error--> The server cannot verify the user, but it will try to deliver the message anyway.");
+                else if (BYTESin.contains("354")) {
+                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println(ConsoleColors.GREEN + "OK -> CLIENT going to state I (wait for data)"
+                            + ConsoleColors.RESET);
+
+                } else if (BYTESin.contains("420"))
+                    System.out.println("SERVER Error--> Timeout connection problem.");
                 else if (BYTESin.contains("421"))
                     System.out.println("SERVER Error-->Service not available, closing transmission channel");
-                else if (BYTESin.contains("354")) {
-                    System.out.println("OK -> CLIENT going to state I (wait for data)");
-                    isDATAflag.set(true);
-                }
+                else if (BYTESin.contains("422"))
+                    System.out.println("SERVER Error--> The recipient’s mailbox has exceeded its storage limit.");
+                else if (BYTESin.contains("431"))
+                    System.out.println("Not enough space on the disk, out of memory");
+                else if (BYTESin.contains("432"))
+                    System.out.println("The recipient’s Exchange Server incoming mail queue has been stopped.");
+                else if (BYTESin.contains("441"))
+                    System.out.println("The recipient’s server is not responding.");
+                else if (BYTESin.contains("442"))
+                    System.out.println("The connection was dropped during the transmission.");
+                else if (BYTESin.contains("446"))
+                    System.out.println(
+                            "The maximum hop count was exceeded for the message: an internal loop has occurred.");
+                else if (BYTESin.contains("447"))
+                    System.out.println(
+                            "Your outgoing message timed out because of issues concerning the incoming server.");
+                else if (BYTESin.contains("449"))
+                    System.out.println("A routing error.");
+                else if (BYTESin.contains("450"))
+                    System.out.println("Requested action not taken – The user’s mailbox is unavailable.");
+                else if (BYTESin.contains("451")) {
+                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println(
+                            ConsoleColors.RED + "SERVER Error-->Requested action aborted – Local error in processing"
+                                    + ConsoleColors.RESET);
+                } else if (BYTESin.contains("452")) {
+                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println(ConsoleColors.RED + "SERVER Error-->Too many emails sent or too many recipients."
+                            + ConsoleColors.RESET);
+                } else if (BYTESin.contains("471")) {
+                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error-->An error of your mail server, often due to an issue of the local anti-spam filter."
+                            + ConsoleColors.RESET);
+                } else if (BYTESin.contains("500"))
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> Syntax error, command unrecognized."
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("501"))
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> Syntax error in parameters or arguments."
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("502"))
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> The command is not implemented."
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("503"))
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error--> The server has encountered a bad sequence of commands, or it requires an authentication."
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("504"))
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> Command parameter not implemented"
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("510") || BYTESin.contains("511"))
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> Bad email address." + ConsoleColors.RESET);
+                else if (BYTESin.contains("512"))
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error--> A DNS error: the host server for the recipient’s domain name cannot be found."
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("513"))
+                    System.out.println(
+                            ConsoleColors.RED + "SERVER Error--> Address type is incorrect." + ConsoleColors.RESET);
+                else if (BYTESin.contains("523"))
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error--> The total size of your mailing exceeds the recipient server’s limits."
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("530"))
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error--> Normally, an authentication problem. But sometimes it’s about the recipient’s server blacklisting yours, or an invalid email address."
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("541"))
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error--> The recipient address rejected your message: normally, it’s an error caused by an anti-spam filter."
+                            + ConsoleColors.RESET);
+                else if (BYTESin.contains("550")) {
+                    isLogedIn = false;
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error--> It usually defines a non-existent email address on the remote side."
+                            + ConsoleColors.RESET);
+                } else if (BYTESin.contains("551"))
+                    System.out.println(
+                            ConsoleColors.RED + "SERVER Error--> User not local or invalid address – Relay denied."
+                                    + ConsoleColors.RESET);
+                else if (BYTESin.contains("553"))
+                    System.out.println(
+                            ConsoleColors.RED + "SERVER Error--> Requested action not taken – Mailbox name invalid."
+                                    + ConsoleColors.RESET);
+                else if (BYTESin.contains("554"))
+                    System.out.println(
+                            ConsoleColors.RED + "SERVER Error--> the transaction has failed." + ConsoleColors.RESET);
             } catch (Exception except) {
                 // Exception thrown (except) when something went wrong, pushing message to the
                 // console
-                System.out.println("Error in ClientReader --> " + except.getMessage());
+                System.out.println(
+                        ConsoleColors.RED + "Error in ClientReader --> " + except.getMessage() + ConsoleColors.RESET);
             }
         }
     }
@@ -99,11 +213,21 @@ class ClientWriter implements Runnable {
     public static String CRLF = "\r\n";
     public static String LF = "\n";
     public static String EC = " ";
+    public static String SPACE = "      ";
     public static String ClientDomainName = "MyTestDomain.gr";
     public static String ClientEmailAddress = "myEmail@" + ClientDomainName;
+    public static String RCPTEmail = "receip@MyTestDomain.gr";
+    public static String ClientMsg = "This is a simple message end with" + CRLF + "." + CRLF;
+    public static Boolean isLogedIn = false;
 
     Socket cwSocket = null;
     AtomicBoolean isDATAflag;
+
+    private void userChoice() { // Print the command board
+        System.out.println("\nCLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND:" + CRLF + " 1...HELO" + SPACE
+                + " 2...MAIL TO" + EC + EC + "  3...RECV FROM" + CRLF + " 4...DATA" + SPACE + " 5...NOOP" + SPACE
+                + " 6...RSET" + CRLF + " 7...EXPN" + SPACE + " 8...HELP" + SPACE + " 9...QUIT");
+    }
 
     public ClientWriter(Socket outputSoc, AtomicBoolean isDATA) {
         cwSocket = outputSoc;
@@ -111,91 +235,188 @@ class ClientWriter implements Runnable {
     }
 
     public void run() {
+
         String msgToServer = "";
-        String BYTESin = "";
-        String ClientDomainName = "MyTestDomain.gr";
-        String RCPTEmail = "receip@gmail.com";
-        String DataToSend = "This is the body of the message";
+
         try {
-            System.out.println("CLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND:" + CRLF + "1...HELO" + CRLF
-                    + " 2...MAIL TO" + CRLF + " 3...RECV FROM" + CRLF + " 4...DATA" + CRLF + "5...msg" + CRLF
-                    + "6...QUIT");
-            DataOutputStream dataOut = new DataOutputStream(cwSocket.getOutputStream());
 
-            Scanner user_input = new Scanner(System.in);
-            while (!cwSocket.isClosed()) {
+            Scanner user_input = new Scanner(System.in);// Scanner for user input
+            DataOutputStream dataOut = new DataOutputStream(cwSocket.getOutputStream()); // Initialize an output
+            // stream
+            System.out.println("Please type your email: ");
 
-                switch (user_input.nextInt()) {
-                    case 1: {
-                        System.out.println("CLIENT WRITER SENDING HELLO");
-                        System.out.println("--------------------------");
-                        System.out.println(ConsoleColors.BLUE + "Sending..." + ConsoleColors.RESET + " HELLO" + EC
-                                + ClientDomainName + CRLF);
+            String email = user_input.nextLine();
+            dataOut.writeUTF(email);
+            dataOut.flush(); // Send user given email address in order to verify and connect
 
-                        msgToServer = ("HELO" + EC + ClientDomainName + CRLF);
-                        dataOut.writeUTF(msgToServer);
-                        dataOut.flush();
-                        break;
-                    }
-                    case 2: {
-                        System.out.println("CLIENT WRITER SENDING MAIL FROM");
-                        System.out.println("--------------------------");
-                        System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "MAIL FROM:"
-                                + EC + ClientEmailAddress + CRLF);
+            while (!cwSocket.isClosed()) { // While the user is connected
 
-                        msgToServer = ("MAIL FROM:" + EC + ClientEmailAddress + CRLF);
-                        dataOut.writeUTF(msgToServer);
-                        dataOut.flush();
+                TimeUnit.SECONDS.sleep(1); // Wait the response from the server
 
-                        break;
-                    }
-                    case 3: {
-                        System.out.println("CLIENT WRITER SENDING RCPT TO");
-                        System.out.println("--------------------------");
-                        System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "RCPT TO:"
-                                + EC + RCPTEmail + CRLF);
+                if (ClientReader.isLogedIn()) { // if a user is veryfied -> Loged In
+                    isLogedIn = true;
+                } else {
+                    isLogedIn = false;
+                }
 
-                        msgToServer = ("RCPT TO:" + EC + RCPTEmail + CRLF);
-                        dataOut.writeUTF(msgToServer);
-                        dataOut.flush();
-                        break;
-                    }
-                    case 4: {
-                        System.out.println("CLIENT WRITER SENDING DATA");
-                        System.out.println("--------------------------");
-                        System.out
-                                .println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "DATA" + CRLF);
+                // if user is connected
+                if (isLogedIn) {
 
-                        msgToServer = ("DATA:" + EC + DataToSend + CRLF + "." + CRLF);
-                        dataOut.writeUTF(msgToServer);
-                        dataOut.flush();
-                        break;
-                    }
-                    case 5: {
+                    userChoice(); // Print the command board
 
-                        break;
-                    }
-                    case 6: {
-                        System.out.print("CLIENT : QUITing");
-                        //
-                        // SYNTAX (page 12 RFC 821)
-                        // QUIT <CRLF>
-                        //
-                        msgToServer = ("QUIT" + CRLF);
-                        dataOut.writeUTF(msgToServer);
-                        dataOut.flush();
-                        System.out.println("...closing socket ");
-                        return;
-                    } // case
-                } // switch
+                    switch (user_input.next()) { // User input cases
 
-            } // while
-            user_input.close();
-        } // try
+                        // HELO Command
+                        case "1": {
+                            System.out.println("CLIENT WRITER SENDING HELO");
+                            System.out.println("--------------------------");
+                            System.out.println(ConsoleColors.BLUE + "Sending..." + ConsoleColors.RESET + " HELO" + EC
+                                    + ClientDomainName + CRLF);
+
+                            msgToServer = ("HELO" + EC + ClientDomainName + CRLF);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+
+                            break;
+                        }
+                        // MAIL FROM Command
+                        case "2": {
+
+                            System.out.println("CLIENT WRITER SENDING MAIL FROM");
+                            System.out.println("--------------------------");
+                            System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET
+                                    + "MAIL FROM:" + EC + ClientEmailAddress + CRLF);
+
+                            msgToServer = ("MAIL FROM" + EC + ClientEmailAddress + CRLF);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+
+                            break;
+                        }
+                        // RCPT TO Command
+                        case "3": {
+
+                            System.out.println("CLIENT WRITER SENDING RCPT TO");
+                            System.out.println("--------------------------");
+                            System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "RCPT TO:"
+                                    + EC + RCPTEmail + CRLF);
+
+                            msgToServer = ("RCPT TO" + EC + RCPTEmail + CRLF);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+                        }
+                        // DATA Command
+                        case "4": {
+
+                            System.out.println("CLIENT WRITER SENDING DATA");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "DATA" + CRLF);
+
+                            msgToServer = ("DATA" + CRLF + "From:" + ClientEmailAddress + LF + "To" + RCPTEmail + LF
+                                    + LF + ClientMsg);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+                        }
+                        // NOOP Command
+                        case "5": {
+
+                            System.out.println("CLIENT WRITER SET NOOP");
+                            System.out.println("----------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "NOOP" + CRLF);
+
+                            msgToServer = ("NOOP" + CRLF);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+
+                        // EXPN Command
+                        case "6": {
+
+                            System.out.println("CLIENT WRITER CONVERSATION EXPN");
+                            System.out.println("--------------------------------");
+
+                            msgToServer = ("EXPN" + CRLF);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+                        // RSET Command
+                        case "7": {
+
+                            System.out.println("CLIENT WRITER CONVERSATION RESET");
+                            System.out.println("--------------------------------");
+
+                            msgToServer = ("RSET" + CRLF);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+
+                            break;
+
+                        }
+
+                        // HELP Command
+
+                        case "8": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+
+                            msgToServer = ("HELP" + CRLF);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+                        // QUIT Command
+                        case "9": {
+
+                            System.out.print("CLIENT : QUITing");
+
+                            msgToServer = ("QUIT" + CRLF);
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+
+                            System.out.println("...closing socket ");
+                            user_input.close();
+                            return;
+
+                        }
+
+                        default: {
+                            System.out.println(ConsoleColors.RED + "Wrong input " + ConsoleColors.RESET + "\n\n");
+                            userChoice();// Print the command board
+                        }
+                    } // switch
+
+                } // else
+                else { // If user types an unknown email
+
+                    System.out.println(
+                            ConsoleColors.RED + "Wrong email." + ConsoleColors.RESET + " Please type your email: ");
+
+                    email = user_input.nextLine();
+                    dataOut.writeUTF(email);
+                    dataOut.flush();// Send user given email address in order to verify and connect
+
+                }
+
+                isLogedIn = false; // When use is logged out
+            } // try
+        } // while
         catch (Exception except) {
             // Exception thrown (except) when something went wrong, pushing message to the
             // console
-            System.out.println("Error in ClientWriter --> " + except.getMessage());
+            System.out.println(
+                    ConsoleColors.RED + "Error in ClientWriter --> " + except.getMessage() + ConsoleColors.RESET);
         }
     }
 }
