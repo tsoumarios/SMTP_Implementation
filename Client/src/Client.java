@@ -77,24 +77,26 @@ class ClientReader implements Runnable {
                 // **** Must be implemented with Swith - case *********
                 if (BYTESin.contains("221")) {
                     System.out.println("SERVER response: " + BYTESin);
-                    System.out.println("...closing socket");
+                    System.out.println(ConsoleColors.RED + "...closing socket" + ConsoleColors.RESET);
                     crSocket.close();
                     return;
                 } else if (BYTESin.contains("101")) {
-                    System.out.println("The server is unable to connect.");
+                    System.out.println(ConsoleColors.YELLOW + "The server is unable to connect." + ConsoleColors.RESET);
                 } else if (BYTESin.contains("111")) {
-                    System.out.println("Connection refused or inability to open an SMTP stream.");
+                    System.out.println(ConsoleColors.YELLOW + "Connection refused or inability to open an SMTP stream."
+                            + ConsoleColors.RESET);
                     System.out.println("SERVER response: " + BYTESin);
                 } else if (BYTESin.contains("211")) {
-                    System.out.println("System status message or help reply.");
+                    System.out.println(
+                            ConsoleColors.YELLOW + "System status message or help reply." + ConsoleColors.RESET);
                     System.out.println("SERVER response: " + BYTESin);
                 } else if (BYTESin.contains("214")) {
-                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println(ConsoleColors.YELLOW + "SERVER response: " + BYTESin + ConsoleColors.RESET);
                 } else if (BYTESin.contains("220")) {
                     System.out.println(ConsoleColors.GREEN + "The server is ready." + ConsoleColors.RESET);
-                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println(ConsoleColors.YELLOW + "SERVER response: " + BYTESin + ConsoleColors.RESET);
                 } else if (BYTESin.contains("250")) {
-                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println(ConsoleColors.YELLOW + "SERVER response: " + BYTESin + ConsoleColors.RESET);
                     System.out
                             .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
                     isLogedIn = true;
@@ -105,10 +107,12 @@ class ClientReader implements Runnable {
                             .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
                     isDATAflag.set(false);
                 } else if (BYTESin.contains("251"))
-                    System.out.println("SERVER Error--> User not local will forward");
-                else if (BYTESin.contains("252"))
                     System.out.println(
-                            "SERVER Error--> The server cannot verify the user, but it will try to deliver the message anyway.");
+                            ConsoleColors.RED + "SERVER Error--> User not local will forward" + ConsoleColors.RESET);
+                else if (BYTESin.contains("252"))
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error--> The server cannot verify the user, but it will try to deliver the message anyway."
+                            + ConsoleColors.RESET);
                 else if (BYTESin.contains("354")) {
                     System.out.println("SERVER response: " + BYTESin);
                     System.out.println(ConsoleColors.GREEN + "OK -> CLIENT going to state I (wait for data)"
@@ -116,11 +120,16 @@ class ClientReader implements Runnable {
                     isDATAflag.set(true);
 
                 } else if (BYTESin.contains("420"))
-                    System.out.println("SERVER Error--> Timeout connection problem.");
+                    System.out.println(
+                            ConsoleColors.RED + "SERVER Error--> Timeout connection problem." + ConsoleColors.RESET);
                 else if (BYTESin.contains("421"))
-                    System.out.println("SERVER Error-->Service not available, closing transmission channel");
+                    System.out.println(
+                            ConsoleColors.RED + "SERVER Error-->Service not available, closing transmission channel"
+                                    + ConsoleColors.RESET);
                 else if (BYTESin.contains("422"))
-                    System.out.println("SERVER Error--> The recipient’s mailbox has exceeded its storage limit.");
+                    System.out.println(ConsoleColors.RED
+                            + "SERVER Error--> The recipient’s mailbox has exceeded its storage limit."
+                            + ConsoleColors.RESET);
                 else if (BYTESin.contains("431"))
                     System.out.println("Not enough space on the disk, out of memory");
                 else if (BYTESin.contains("432"))
@@ -136,7 +145,7 @@ class ClientReader implements Runnable {
                     System.out.println(
                             "Your outgoing message timed out because of issues concerning the incoming server.");
                 else if (BYTESin.contains("449"))
-                    System.out.println("A routing error.");
+                    System.out.println(ConsoleColors.RED + "A routing error." + ConsoleColors.RESET);
                 else if (BYTESin.contains("450"))
                     System.out.println("Requested action not taken – The user’s mailbox is unavailable.");
                 else if (BYTESin.contains("451")) {
