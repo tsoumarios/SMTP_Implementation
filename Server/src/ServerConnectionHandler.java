@@ -36,13 +36,14 @@ public class ServerConnectionHandler implements Runnable {
 
                 ArrayList<String> CommandStack = new ArrayList<String>(); // List of user commands
                 ArrayList<String> mail_data_buffer = new ArrayList<String>();
-                ArrayList<String> forward_path_buffer = new ArrayList<String>();
+                ArrayList<String> forward_path_buffer = new ArrayList<String>(); // List to include the Recipients of
+                                                                                 // the emails
                 ArrayList<String> reverse_path_buffer = new ArrayList<String>();
-                ArrayList<String> Receipters = new ArrayList<String>(); // List to include the receipters of the emails
 
                 while (!_socketMngObjVar.soc.isClosed()) { // While a user is connected
                     if (!isLoggedIn) {
                         String userEmail = _socketMngObjVar.input.readUTF();
+                        // decryption
                         if (KnownEmails.contains(userEmail)) {
                             isLoggedIn = true;
                             System.out.println("Client " + userEmail + " is connected.");
@@ -66,7 +67,8 @@ public class ServerConnectionHandler implements Runnable {
 
                         }
 
-                        Server_SMTP_Handler(_socketMngObjVar, clientMSG, CommandStack, Receipters);
+                        Server_SMTP_Handler(_socketMngObjVar, clientMSG, CommandStack, forward_path_buffer,
+                                mail_data_buffer, reverse_path_buffer);
                     }
 
                 } // while socket NOT CLOSED
@@ -81,31 +83,23 @@ public class ServerConnectionHandler implements Runnable {
     }
 
     private void Server_SMTP_Handler(socketManager sm, String clientMSG, ArrayList<String> CommandStack,
-            ArrayList<String> Receipters) {
+            ArrayList<String> Recipients, ArrayList<String> mail_data_buffer, ArrayList<String> reverse_path_buffer) {
 
         boolean REQUESTED_DOMAIN_NOT_AVAILABLE = false;
         String ServerDomainName = "ServerDomain.gr";
-        boolean SMTP_OUT_OF_STORAGE = false;
-        boolean SMTP_INSUFFICIENT_STORAGE = false;
-        boolean SMTP_LOCAL_PROCESSING_ERROR = false;
-        boolean SUCCESS_STATE = false;
-        boolean WAIT_STATE = true;
+        // boolean SMTP_OUT_OF_STORAGE = false;
+        // boolean SMTP_INSUFFICIENT_STORAGE = false;
+        // boolean SMTP_LOCAL_PROCESSING_ERROR = false;
+        // boolean SUCCESS_STATE = false;
+        // boolean WAIT_STATE = true;
         String sResponceToClient = "";
         String ClientDomainName = "";
         String ClientEmail = "";
-        String ClientMsgToSend = "";
         String ckeck1 = "";
         String check2 = "";
-        String helpCmd = "";
+        String ClientMsgToSend = "";
 
-        String allCmdsList = "\tHELP\tAsks for help from the mail server.\n"
-                + "\tHELO \tSpecify your domain name so that the mail server knows who you are.\n"
-                + "\tRCPT \tSpecify the recipient. Issue this command multiple times if you have more than one recipient.\n"
-                + "\tMAIL \tSpecify the sender email.\n"
-                + "\tDATA \t Issue this command before sending the body of the message.\n"
-                + "\tNOOP \tDoes nothing except to get a response from the server.\n"
-                + "\tRSET \tAborts the current conversation and start a new conversation.\n"
-                + "\tQUIT \tTerminates the conversation with the server.";
+        String allCmdsList = "\tHELO\n" + "\tRCPT \n" + "\tMAIL\n" + "\tDATA\n" + "\tNOOP\n" + "\tRSET\n" + "\tQUIT\n";
 
         ArrayList<String> UsersInServerDomain = new ArrayList<String>();
         UsersInServerDomain.add("Alice");
@@ -201,7 +195,8 @@ public class ServerConnectionHandler implements Runnable {
                         GO_ON_CHECKS = false;
                     } else {
                         System.out.println("Client Domain Name is not in Domain List");
-                        ResponceToClient = ClientDomainName + "is not in the Domain List" + CRLF; // Make the response
+                        ResponceToClient = "451" + ClientDomainName + "is not in the Domain List" + CRLF; // Make the
+                                                                                                          // response
                         _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
                         _socketMngObjVar.output.flush(); // Flushes the data output stream // to Client
                     }
@@ -223,7 +218,7 @@ public class ServerConnectionHandler implements Runnable {
 
                         if (KnownEmails.contains(ClientEmail)) { // Check if the client email is in the Known email list
                             System.out.println("SERVER : MAIL FROM from client");
-
+                            reverse_path_buffer.add(ClientEmail);
                             _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
                             _socketMngObjVar.output.flush();
 
@@ -260,9 +255,9 @@ public class ServerConnectionHandler implements Runnable {
                         check2 = ckeck1.replace(CRLF, "");
                         ClientEmail = check2.replace(EC, ""); // Get the client email
                         System.out.println(ClientEmail);
-                        Receipters.add(ClientEmail);
+                        Recipients.add(ClientEmail);
 
-                        if (KnownEmails.containsAll(Receipters)) { // Check if the client email is in the Known email
+                        if (KnownEmails.containsAll(Recipients)) { // Check if the client email is in the Known email
                                                                    // list
                             System.out.println("SERVER : RCPT TO from client");
 
@@ -305,9 +300,10 @@ public class ServerConnectionHandler implements Runnable {
 
                         System.out.println("SERVER : DATA from client");
                         if (clientMSG.endsWith(CRLF + "." + CRLF)) {
-                            if (!Receipters.isEmpty()) {
+                            if (!Recipients.isEmpty()) {
 
                                 ClientMsgToSend = clientMSG.substring(clientMSG.indexOf(CRLF));
+                                mail_data_buffer.add(ClientMsgToSend);
                                 System.out.println(ClientMsgToSend);
 
                                 _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
@@ -339,41 +335,36 @@ public class ServerConnectionHandler implements Runnable {
 
                 // END DATA
                 ////////////////////////////////////////////////////////////////////
-                ////////////////////////////////////////////////////////////////////
 
                 ////////////////////////////////////////////////////////////////////
-                // EXPN start
-                else if (clientMSG.contains("EXPN") && GO_ON_CHECKS) {
+                // NOOP start
+                else if (clientMSG.contains("NOOP") && GO_ON_CHECKS) {
 
-                    System.out.println("SERVER : EXPN from client");
-                    if (CommandStack.contains("RCPT TO")) { // Check if RCPT TO is done
+                    System.out.println("SERVER : NOOP from client");
 
-                        if (KnownEmails.containsAll(Receipters)) { // Check if Receipters is in the Known email List
+                    _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                    _socketMngObjVar.output.flush();
 
-                            _socketMngObjVar.output.writeUTF("250 The recipients are on the list.");
-                            _socketMngObjVar.output.flush();
-
-                            SUCCESS_STATE = true;
-                            GO_ON_CHECKS = false;
-                            CommandStack.add("EXPN");
-                            System.out.println(CommandStack);
-                        } else {
-
-                            _socketMngObjVar.output.writeUTF("550: The recipient are not on the list");
-                            System.out.println("SERVER : The recipient are not on the list");
-
-                        }
-                    } else {// Check if RCPT TO is done
-                        System.out.println("EXPN command faild. Implement RCPT TO command before EXPN.");
-
-                        // Makes the response to Client
-                        ResponceToClient = "451 EXPN command faild. Implement RCPT TO command before EXPN.";
-                        _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
-                        _socketMngObjVar.output.flush(); // Flushes the data output stream // to Client
-                    }
                 }
+                // END NOOP
+                ////////////////////////////////////////////////////////////////////
 
-                // END EXPN
+                ////////////////////////////////////////////////////////////////////
+                // RSET start
+                // Check for RSET message for client
+                else if (clientMSG.contains("RSET") && GO_ON_CHECKS) {
+                    System.out.println("SERVER : RSET from client");
+
+                    CommandStack.clear(); // Clear the Command stack
+                    reverse_path_buffer.clear(); // Clear the Mail From List
+                    Recipients.clear(); // Clear the Recipients List
+                    mail_data_buffer.clear(); // Clear the Mail List
+
+                    _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                    _socketMngObjVar.output.flush();
+                    System.out.println("SERVER : All Lists are cleared!");
+                }
+                // END RSET
                 ////////////////////////////////////////////////////////////////////
 
                 ////////////////////////////////////////////////////////////////////
@@ -382,52 +373,50 @@ public class ServerConnectionHandler implements Runnable {
 
                     System.out.println("SERVER : HELP from client");
 
-                    _socketMngObjVar.output.writeUTF(
-                            "214" + CRLF + "Table of command name and description" + CRLF + CRLF + allCmdsList);
+                    _socketMngObjVar.output.writeUTF("214" + CRLF
+                            + "Type HELP-<commandName> (without spaces) to receive informations about specific command."
+                            + CRLF + CRLF + allCmdsList);
                     _socketMngObjVar.output.flush();
-
-                    // **** Notes for alternative implementation
-                    // .writeUTF("For more information on a specific command, type HELP
-                    // command-name" + CRLF + CRLF
-                    // + allCmdsList);
-
                 }
+
                 // END HELP
                 ////////////////////////////////////////////////////////////////////
-
-                ////////////////////////////////////////////////////////////////////
-                // NOOP start
-                else if (clientMSG.contains("NOOP") && GO_ON_CHECKS) {
-
-                    System.out.println("SERVER : NOOP from client");
-
-                    _socketMngObjVar.output.writeUTF("250 OK + CRLF");
-                    _socketMngObjVar.output.flush();
-
-                }
-                // END NOOP
-                ////////////////////////////////////////////////////////////////////
-
-                /************************************************
-                 * MUST CONTINUE HERE
-                 ***********************************************/
-                // Check for RSET message for client
-                else if (clientMSG.contains("RSET") && GO_ON_CHECKS) {
-                    System.out.println("2 SERVER : RSET from client");
-
-                    _socketMngObjVar.output.writeUTF("RSET" + CRLF);
-                    _socketMngObjVar.output.flush();
-
-                    return; // RSET FROM thread
-                }
-
-                /************************************************
-                 * END CONTINUE
-                 ***********************************************/
 
                 clientMSG = ""; // empty buffer after CRLF
             } // if CRLF
 
+            ////////////////////////////////////////////////////////////////////////////////
+            // ____________________HELP_INFORMATIONS_FOREACH_COMMAND______________________//
+
+            if (clientMSG.contains("HELP -HELO") && GO_ON_CHECKS) {
+                _socketMngObjVar.output
+                        .writeUTF("\tHELO \t\tSpecify your domain name so that the mail server knows who you are.\n");
+                _socketMngObjVar.output.flush();
+            } else if (clientMSG.contains("HELP -MAIL") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+                _socketMngObjVar.output.writeUTF("\tMAIL \t\tSpecify the sender email.\n");
+                _socketMngObjVar.output.flush();
+            } else if (clientMSG.contains("HELP -RCPT") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+                _socketMngObjVar.output.writeUTF(
+                        "\tRCPT \t\tSpecify the recipient. Issue this command multiple times if you have more than one recipient.\n");
+                _socketMngObjVar.output.flush();
+            } else if (clientMSG.contains("HELP -DATA") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+                _socketMngObjVar.output
+                        .writeUTF("\tDATA \t\tIssue this command before sending the body of the message.\n");
+                _socketMngObjVar.output.flush();
+            } else if (clientMSG.contains("HELP -QUIT") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+                _socketMngObjVar.output.writeUTF("\tQUIT \t\tTerminates the conversation with the server.");
+                _socketMngObjVar.output.flush();
+            } else if (clientMSG.contains("HELP -RSET") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+                _socketMngObjVar.output
+                        .writeUTF("\tRSET \t\tAborts the current conversation and start a new conversation.\n");
+                _socketMngObjVar.output.flush();
+            } else if (clientMSG.contains("HELP -NOOP") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+                _socketMngObjVar.output.writeUTF("\tNOOP \t\tDoes nothing except to get a response from the server.\n");
+                _socketMngObjVar.output.flush();
+            }
+
+            // END HELP COMMANDS
+            ////////////////////////////////////////////////////////////////////
             sm.output.writeUTF(sResponceToClient);
         } catch (
 

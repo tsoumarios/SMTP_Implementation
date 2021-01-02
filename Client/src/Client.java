@@ -66,7 +66,7 @@ class ClientReader implements Runnable {
 
     public void run() {
 
-        while (!crSocket.isClosed() && !isDATAflag.get()) {
+        while (!crSocket.isClosed()) {
             // while connection is open and NOT IN DATA exchange STATE
             try {
                 DataInputStream dataIn = new DataInputStream(crSocket.getInputStream());
@@ -98,6 +98,12 @@ class ClientReader implements Runnable {
                     System.out
                             .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
                     isLogedIn = true;
+                    isDATAflag.set(false);
+                } else if (BYTESin.contains("250") && isDATAflag.get()) {
+                    System.out.println("SERVER response: " + BYTESin);
+                    System.out
+                            .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
+                    isDATAflag.set(false);
                 } else if (BYTESin.contains("251"))
                     System.out.println("SERVER Error--> User not local will forward");
                 else if (BYTESin.contains("252"))
@@ -107,6 +113,7 @@ class ClientReader implements Runnable {
                     System.out.println("SERVER response: " + BYTESin);
                     System.out.println(ConsoleColors.GREEN + "OK -> CLIENT going to state I (wait for data)"
                             + ConsoleColors.RESET);
+                    isDATAflag.set(true);
 
                 } else if (BYTESin.contains("420"))
                     System.out.println("SERVER Error--> Timeout connection problem.");
@@ -199,6 +206,14 @@ class ClientReader implements Runnable {
                 else if (BYTESin.contains("554"))
                     System.out.println(
                             ConsoleColors.RED + "SERVER Error--> the transaction has failed." + ConsoleColors.RESET);
+                // PRINT HELP MESSAGES
+                else if (BYTESin.contains("\tHELO") || BYTESin.contains("\tRCPT") || BYTESin.contains("\tMAIL")
+                        || BYTESin.contains("\tDATA") || BYTESin.contains("\tNOOP") || BYTESin.contains("\tRSET")
+                        || BYTESin.contains("\tQUIT")) {
+                    System.out.println("=========================================" + ConsoleColors.CYAN
+                            + "\n\nCommand: \t " + ConsoleColors.YELLOW + "Informations: \n" + ConsoleColors.RESET
+                            + BYTESin + "\n=========================================");
+                }
             } catch (Exception except) {
                 // Exception thrown (except) when something went wrong, pushing message to the
                 // console
@@ -226,7 +241,7 @@ class ClientWriter implements Runnable {
     private void userChoice() { // Print the command board
         System.out.println("\nCLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND:" + CRLF + " 1...HELO" + SPACE
                 + " 2...MAIL TO" + EC + EC + "  3...RECV FROM" + CRLF + " 4...DATA" + SPACE + " 5...NOOP" + SPACE
-                + " 6...RSET" + CRLF + " 7...EXPN" + SPACE + " 8...HELP" + SPACE + " 9...QUIT");
+                + " 6...RSET" + CRLF + " 7...HELP" + SPACE + " 8...QUIT");
     }
 
     public ClientWriter(Socket outputSoc, AtomicBoolean isDATA) {
@@ -246,10 +261,11 @@ class ClientWriter implements Runnable {
             System.out.println("Please type your email: ");
 
             String email = user_input.nextLine();
+            // ecryption
             dataOut.writeUTF(email);
             dataOut.flush(); // Send user given email address in order to verify and connect
 
-            while (!cwSocket.isClosed()) { // While the user is connected
+            while (!cwSocket.isClosed() && !isDATAflag.get()) { // While the user is connected
 
                 TimeUnit.SECONDS.sleep(1); // Wait the response from the server
 
@@ -335,20 +351,8 @@ class ClientWriter implements Runnable {
 
                         }
 
-                        // EXPN Command
-                        case "6": {
-
-                            System.out.println("CLIENT WRITER CONVERSATION EXPN");
-                            System.out.println("--------------------------------");
-
-                            msgToServer = ("EXPN" + CRLF);
-                            dataOut.writeUTF(msgToServer);
-                            dataOut.flush();
-                            break;
-
-                        }
                         // RSET Command
-                        case "7": {
+                        case "6": {
 
                             System.out.println("CLIENT WRITER CONVERSATION RESET");
                             System.out.println("--------------------------------");
@@ -363,7 +367,7 @@ class ClientWriter implements Runnable {
 
                         // HELP Command
 
-                        case "8": {
+                        case "7": {
                             // CLIENT WRITER SET HELP
                             System.out.println("CLIENT WRITER SENDING HELP");
                             System.out.println("--------------------------");
@@ -377,7 +381,7 @@ class ClientWriter implements Runnable {
 
                         }
                         // QUIT Command
-                        case "9": {
+                        case "8": {
 
                             System.out.print("CLIENT : QUITing");
 
@@ -388,6 +392,97 @@ class ClientWriter implements Runnable {
                             System.out.println("...closing socket ");
                             user_input.close();
                             return;
+
+                        }
+                        case "HELP-HELO": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+
+                            msgToServer = ("HELP -HELO");
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "HELP-MAIL": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+
+                            msgToServer = ("HELP -MAIL");
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "HELP-RCPT": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+
+                            msgToServer = ("HELP -RCPT");
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "HELP-DATA": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+
+                            msgToServer = ("HELP -DATA");
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "HELP-RSET": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP RSET");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+
+                            msgToServer = ("HELP -HELO");
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "HELP-QUIT": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP QUIT");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+
+                            msgToServer = ("HELP -QUIT");
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "HELP-NOOP": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+
+                            msgToServer = ("HELP -NOOP");
+                            dataOut.writeUTF(msgToServer);
+                            dataOut.flush();
+                            break;
 
                         }
 
