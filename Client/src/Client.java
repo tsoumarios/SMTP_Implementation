@@ -2,6 +2,10 @@ import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
+import javax.crypto.spec.IvParameterSpec;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -39,6 +43,7 @@ public class Client {
             System.out.println("Error in SMTP_Client --> " + except.getMessage());
         }
     }
+
 }
 
 // This thread is responcible for writing messages
@@ -64,14 +69,41 @@ class ClientReader implements Runnable {
         this.isDATAflag = isDATA;
     }
 
+    // we'll use following data for the data encryption
+
+    private static String secretKey = "kdfslksdnflsdfsd";
+
+    private static final String ALGORITHM = "Blowfish";
+    private static final String MODE = "Blowfish/CBC/PKCS5Padding";
+    private static final String IV = "abcdefgh";
+
+    // public static String encrypt(String value) throws Exception {
+    // SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(),
+    // ALGORITHM);
+    // Cipher cipher = Cipher.getInstance(MODE);
+    // cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, new
+    // IvParameterSpec(IV.getBytes()));
+    // byte[] values = cipher.doFinal(value.getBytes());
+    // return Base64.getEncoder().encodeToString(values);
+    // }
+
+    public static String decrypt(String value) throws Exception {
+        byte[] values = Base64.getDecoder().decode(value);
+        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
+        Cipher cipher = Cipher.getInstance(MODE);
+        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, new IvParameterSpec(IV.getBytes()));
+        return new String(cipher.doFinal(values));
+    }
+
     public void run() {
 
         while (!crSocket.isClosed()) {
             // while connection is open and NOT IN DATA exchange STATE
             try {
+
                 DataInputStream dataIn = new DataInputStream(crSocket.getInputStream());
 
-                BYTESin = dataIn.readUTF();
+                BYTESin = decrypt(dataIn.readUTF());
 
                 /*****************************************************/
                 // **** Must be implemented with Swith - case *********
@@ -247,6 +279,20 @@ class ClientWriter implements Runnable {
     Socket cwSocket = null;
     AtomicBoolean isDATAflag;
 
+    private static String secretKey = "kdfslksdnflsdfsd";
+
+    private static final String ALGORITHM = "Blowfish";
+    private static final String MODE = "Blowfish/CBC/PKCS5Padding";
+    private static final String IV = "abcdefgh";
+
+    public static String encrypt(String value) throws Exception {
+        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
+        Cipher cipher = Cipher.getInstance(MODE);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, new IvParameterSpec(IV.getBytes()));
+        byte[] values = cipher.doFinal(value.getBytes());
+        return Base64.getEncoder().encodeToString(values);
+    }
+
     private void userChoice() { // Print the command board
         System.out.println("\nCLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND:" + CRLF + " 1...HELO" + SPACE
                 + " 2...MAIL TO" + EC + EC + "  3...RECV FROM" + CRLF + " 4...DATA" + SPACE + " 5...NOOP" + SPACE
@@ -271,20 +317,16 @@ class ClientWriter implements Runnable {
 
             String email = user_input.nextLine();
             // ecryption
-            dataOut.writeUTF(email);
+            dataOut.writeUTF(encrypt(email));
             dataOut.flush(); // Send user given email address in order to verify and connect
 
             while (!cwSocket.isClosed() && !isDATAflag.get()) { // While the user is connected
 
                 TimeUnit.SECONDS.sleep(1); // Wait the response from the server
 
-                if (ClientReader.isLogedIn()) { // if a user is veryfied -> Loged In
-                    isLogedIn = true;
-                } else {
-                    isLogedIn = false;
-                }
+                isLogedIn = ClientReader.isLogedIn(); // True if a user is veryfied
 
-                // if user is connected
+                // if user is Loged In
                 if (isLogedIn) {
 
                     userChoice(); // Print the command board
@@ -299,7 +341,7 @@ class ClientWriter implements Runnable {
                                     + ClientDomainName + CRLF);
 
                             msgToServer = ("HELO" + EC + ClientDomainName + CRLF);
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
 
                             break;
@@ -313,7 +355,8 @@ class ClientWriter implements Runnable {
                                     + "MAIL FROM:" + EC + ClientEmailAddress + CRLF);
 
                             msgToServer = ("MAIL FROM" + EC + ClientEmailAddress + CRLF);
-                            dataOut.writeUTF(msgToServer);
+
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
 
                             break;
@@ -327,7 +370,7 @@ class ClientWriter implements Runnable {
                                     + EC + RCPTEmail + CRLF);
 
                             msgToServer = ("RCPT TO" + EC + RCPTEmail + CRLF);
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
                         }
@@ -341,7 +384,7 @@ class ClientWriter implements Runnable {
 
                             msgToServer = ("DATA" + CRLF + "From:" + ClientEmailAddress + LF + "To" + RCPTEmail + LF
                                     + LF + ClientMsg);
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
                         }
@@ -354,7 +397,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "NOOP" + CRLF);
 
                             msgToServer = ("NOOP" + CRLF);
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -367,7 +410,7 @@ class ClientWriter implements Runnable {
                             System.out.println("--------------------------------");
 
                             msgToServer = ("RSET" + CRLF);
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
 
                             break;
@@ -384,7 +427,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP" + CRLF);
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -395,7 +438,7 @@ class ClientWriter implements Runnable {
                             System.out.print("CLIENT : QUITing");
 
                             msgToServer = ("QUIT" + CRLF);
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
 
                             System.out.println("...closing socket ");
@@ -411,7 +454,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP -HELO");
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -424,7 +467,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP -MAIL");
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -437,7 +480,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP -RCPT");
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -450,7 +493,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP -DATA");
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -463,7 +506,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP -HELO");
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -476,7 +519,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP -QUIT");
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -489,7 +532,7 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP -NOOP");
-                            dataOut.writeUTF(msgToServer);
+                            dataOut.writeUTF(encrypt(msgToServer));
                             dataOut.flush();
                             break;
 
@@ -508,7 +551,7 @@ class ClientWriter implements Runnable {
                             ConsoleColors.RED + "Wrong email." + ConsoleColors.RESET + " Please type your email: ");
 
                     email = user_input.nextLine();
-                    dataOut.writeUTF(email);
+                    dataOut.writeUTF(encrypt(email));
                     dataOut.flush();// Send user given email address in order to verify and connect
 
                 }

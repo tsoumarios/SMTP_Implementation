@@ -1,4 +1,7 @@
-// import java.io.DataOutputStream;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
+import javax.crypto.spec.IvParameterSpec;
 
 import java.util.ArrayList;
 
@@ -15,9 +18,31 @@ public class ServerConnectionHandler implements Runnable {
     String ResponceToClient = "";
     Boolean SUCCESS_STATE;
 
+    // Encryption/decryption variables
+    private static String secretKey = "kdfslksdnflsdfsd";
+    private static final String ALGORITHM = "Blowfish";
+    private static final String MODE = "Blowfish/CBC/PKCS5Padding";
+    private static final String IV = "abcdefgh";
+
     public ServerConnectionHandler(ArrayList<socketManager> inArrayListVar, socketManager inSocMngVar) {
         _socketMngObjVar = inSocMngVar;
         _active_clients = inArrayListVar;
+    }
+
+    public static String encrypt(String value) throws Exception {
+        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
+        Cipher cipher = Cipher.getInstance(MODE);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, new IvParameterSpec(IV.getBytes()));
+        byte[] values = cipher.doFinal(value.getBytes());
+        return Base64.getEncoder().encodeToString(values);
+    }
+
+    public static String decrypt(String value) throws Exception {
+        byte[] values = Base64.getDecoder().decode(value);
+        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
+        Cipher cipher = Cipher.getInstance(MODE);
+        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, new IvParameterSpec(IV.getBytes()));
+        return new String(cipher.doFinal(values));
     }
 
     public void run() {
@@ -33,29 +58,43 @@ public class ServerConnectionHandler implements Runnable {
                 KnownEmails.add("myEmail@ServerDomain.gr");
                 KnownEmails.add("receip@MyTestDomain.gr");
                 GO_ON_CHECKS = true;
+                String userEmail = "";
 
                 ArrayList<String> CommandStack = new ArrayList<String>(); // List of user commands
                 ArrayList<String> mail_data_buffer = new ArrayList<String>();
                 ArrayList<String> forward_path_buffer = new ArrayList<String>(); // List to include the Recipients of
                                                                                  // the emails
                 ArrayList<String> reverse_path_buffer = new ArrayList<String>();
+                String clientMSG = "";
 
                 while (!_socketMngObjVar.soc.isClosed()) { // While a user is connected
                     if (!isLoggedIn) {
-                        String userEmail = _socketMngObjVar.input.readUTF();
-                        // decryption
-                        if (KnownEmails.contains(userEmail)) {
+
+                        // Decryption of message
+                        userEmail = decrypt(_socketMngObjVar.input.readUTF());
+
+                        if (KnownEmails.contains(userEmail)) { // If the user's email exists in known email list
                             isLoggedIn = true;
+                            // Print the response
                             System.out.println("Client " + userEmail + " is connected.");
-                            _socketMngObjVar.output.writeUTF("250 Client " + userEmail + "is connected.");
+
+                            // Send error response to client
+                            _socketMngObjVar.output.writeUTF(encrypt("250 Client " + userEmail + " is connected."));
                             _socketMngObjVar.output.flush();
                         } else {
+                            // Print the error response
                             System.out.println(
                                     "550 " + userEmail + " is a wrong email, please try again. Type a valid email. ");
+
+                            // Send error response to client
+                            _socketMngObjVar.output.writeUTF(encrypt(
+                                    "550 " + userEmail + " is a wrong email, please try again. Type a valid email. "));
+                            _socketMngObjVar.output.flush();
                         }
                     } else {
 
-                        String clientMSG = _socketMngObjVar.input.readUTF();
+                        clientMSG = decrypt(_socketMngObjVar.input.readUTF());
+
                         System.out.println("SERVER : message FROM CLIENT : " + _socketMngObjVar.soc.getPort() + " --> "
                                 + clientMSG);
 
@@ -131,8 +170,8 @@ public class ServerConnectionHandler implements Runnable {
                     // SYNTAX (page 12 RFC 821)
                     // QUIT <SP> <SERVER domain> <SP> Service closing transmission channel<CRLF>
                     //
-                    _socketMngObjVar.output.writeUTF(
-                            "221" + LF + ServerDomainName + LF + " Service closing transmission channel" + CRLF);
+                    _socketMngObjVar.output.writeUTF(encrypt(
+                            "221" + LF + ServerDomainName + LF + " Service closing transmission channel" + CRLF));
                     _socketMngObjVar.output.flush();
                     _active_clients.remove(_socketMngObjVar);
 
@@ -144,28 +183,28 @@ public class ServerConnectionHandler implements Runnable {
                 ////////////////////////////////////////////////////////////////////
                 // error 500 -> Line too long ! COMMAND CASE = 512
                 else if (clientMSG.length() > 512 && GO_ON_CHECKS) {
-                    sResponceToClient = "500" + CRLF;
+                    sResponceToClient = encrypt("500" + CRLF);
                     System.out.println("error 500 -> Line too long");
                     SUCCESS_STATE = false;
                     GO_ON_CHECKS = false;
                 }
                 // error 501 -> Syntax error in parameters or arguments
                 else if (clientMSG.split(" ").length < 1 && GO_ON_CHECKS) {
-                    sResponceToClient = "501" + CRLF;
+                    sResponceToClient = encrypt("501" + CRLF);
                     System.out.println("error 501 -> Syntax error in parameters or arguments");
                     SUCCESS_STATE = false;
                     GO_ON_CHECKS = false;
                 }
                 // error 504 -> Command parameter not implemented
                 else if (clientMSG.length() < 4 && GO_ON_CHECKS) {
-                    sResponceToClient = "504" + CRLF;
+                    sResponceToClient = encrypt("504" + CRLF);
                     System.out.println("error 504 -> Command parameter not implemented");
                     SUCCESS_STATE = false;
                     GO_ON_CHECKS = false;
                 }
                 // error 421 -> <domain> Service not available
                 else if (REQUESTED_DOMAIN_NOT_AVAILABLE && GO_ON_CHECKS) {
-                    sResponceToClient = "421" + CRLF;
+                    sResponceToClient = encrypt("421" + CRLF);
                     String domain_not_found = clientMSG.replaceAll("HELO ", "");
                     domain_not_found = domain_not_found.replaceAll(CRLF, "");
                     System.out.println("error 421 -> " + domain_not_found + " Service not available");
@@ -188,7 +227,7 @@ public class ServerConnectionHandler implements Runnable {
                         ResponceToClient = "250" + LF + ServerDomainName + CRLF; // Make the response to Client
                         System.out.println("SERVER response: " + ResponceToClient); // Print client message
 
-                        _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
+                        _socketMngObjVar.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         _socketMngObjVar.output.flush(); // Flushes the data output stream
 
                         SUCCESS_STATE = true;
@@ -197,7 +236,7 @@ public class ServerConnectionHandler implements Runnable {
                         System.out.println("Client Domain Name is not in Domain List");
                         ResponceToClient = "451" + ClientDomainName + "is not in the Domain List" + CRLF; // Make the
                                                                                                           // response
-                        _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
+                        _socketMngObjVar.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         _socketMngObjVar.output.flush(); // Flushes the data output stream // to Client
                     }
 
@@ -219,7 +258,7 @@ public class ServerConnectionHandler implements Runnable {
                         if (KnownEmails.contains(ClientEmail)) { // Check if the client email is in the Known email list
                             System.out.println("SERVER : MAIL FROM from client");
                             reverse_path_buffer.add(ClientEmail);
-                            _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                            _socketMngObjVar.output.writeUTF(encrypt("250 OK" + CRLF));
                             _socketMngObjVar.output.flush();
 
                             SUCCESS_STATE = true;
@@ -229,7 +268,7 @@ public class ServerConnectionHandler implements Runnable {
                         } else {
                             System.out.println("Client Email is not in Email List");
                             ResponceToClient = ClientEmail + " is not in the EMAIL List" + CRLF; // Makes the response
-                            _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
+                            _socketMngObjVar.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                             _socketMngObjVar.output.flush(); // Flushes the data output stream to Client
                         }
                     } else { // if HELO is not implemented
@@ -237,7 +276,7 @@ public class ServerConnectionHandler implements Runnable {
 
                         // Makes the response to Client
                         ResponceToClient = "451 MAIL FROM command faild. Implement HELO command before MAIL FROM.";
-                        _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
+                        _socketMngObjVar.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         _socketMngObjVar.output.flush(); // Flushes the data output stream // to Client
 
                     }
@@ -261,7 +300,7 @@ public class ServerConnectionHandler implements Runnable {
                                                                    // list
                             System.out.println("SERVER : RCPT TO from client");
 
-                            _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                            _socketMngObjVar.output.writeUTF(encrypt("250 OK" + CRLF));
                             _socketMngObjVar.output.flush();
 
                             SUCCESS_STATE = true;
@@ -272,7 +311,7 @@ public class ServerConnectionHandler implements Runnable {
                             System.out.println("Client Email is not in Email List");
                             ResponceToClient = ClientEmail + " is not in the Known Emails List" + CRLF; // Make the
                                                                                                         // response
-                            _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
+                            _socketMngObjVar.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                             _socketMngObjVar.output.flush(); // Flushes the data output stream // to Client
                         }
                     } else { // if MAIL FROM or SEND FROM command is not implemented
@@ -281,7 +320,7 @@ public class ServerConnectionHandler implements Runnable {
 
                         // Makes the response to Client
                         ResponceToClient = "451 RCPT TO command faild. Implement MAIL FROM or SEND FROM command before RCPT TO.";
-                        _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
+                        _socketMngObjVar.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         _socketMngObjVar.output.flush(); // Flushes the data output stream // to Client
                     }
                 }
@@ -295,7 +334,7 @@ public class ServerConnectionHandler implements Runnable {
 
                     if (CommandStack.contains("RCPT TO")) { // Check if RCPT TO is done
 
-                        _socketMngObjVar.output.writeUTF("354 End data with <CRLF>.<CRLF>");
+                        _socketMngObjVar.output.writeUTF(encrypt("354 End data with <CRLF>.<CRLF>"));
                         _socketMngObjVar.output.flush();
 
                         System.out.println("SERVER : DATA from client");
@@ -306,7 +345,7 @@ public class ServerConnectionHandler implements Runnable {
                                 mail_data_buffer.add(ClientMsgToSend);
                                 System.out.println(ClientMsgToSend);
 
-                                _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                                _socketMngObjVar.output.writeUTF(encrypt("250 OK" + CRLF));
                                 _socketMngObjVar.output.flush();
 
                                 SUCCESS_STATE = true;
@@ -314,12 +353,13 @@ public class ServerConnectionHandler implements Runnable {
                                 CommandStack.add("DATA");
                                 System.out.println(CommandStack);
                             } else {
-                                _socketMngObjVar.output.writeUTF("451 Error: the message have no recipients.");
+                                _socketMngObjVar.output.writeUTF(encrypt("451 Error: the message have no recipients."));
                                 _socketMngObjVar.output.flush();
                                 System.out.println("451 Error: the message have no recipients.");
                             }
                         } else {
-                            _socketMngObjVar.output.writeUTF("Error: the message does not end with <CRLF>.<CRLF>");
+                            _socketMngObjVar.output
+                                    .writeUTF(encrypt("Error: the message does not end with <CRLF>.<CRLF>"));
                             _socketMngObjVar.output.flush();
                             System.out.println("451 Error: the message does not end with <CRLF>.<CRLF>");
                         }
@@ -328,7 +368,7 @@ public class ServerConnectionHandler implements Runnable {
 
                         // Makes the response to Client
                         ResponceToClient = "451 DATA command faild. Implement RCPT TO command before DATA.";
-                        _socketMngObjVar.output.writeUTF(ResponceToClient); // Send the response to Client
+                        _socketMngObjVar.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         _socketMngObjVar.output.flush(); // Flushes the data output stream // to Client
                     }
                 }
@@ -342,7 +382,7 @@ public class ServerConnectionHandler implements Runnable {
 
                     System.out.println("SERVER : NOOP from client");
 
-                    _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                    _socketMngObjVar.output.writeUTF(encrypt("250 OK" + CRLF));
                     _socketMngObjVar.output.flush();
 
                 }
@@ -360,7 +400,7 @@ public class ServerConnectionHandler implements Runnable {
                     Recipients.clear(); // Clear the Recipients List
                     mail_data_buffer.clear(); // Clear the Mail List
 
-                    _socketMngObjVar.output.writeUTF("250 OK" + CRLF);
+                    _socketMngObjVar.output.writeUTF(encrypt("250 OK" + CRLF));
                     _socketMngObjVar.output.flush();
                     System.out.println("SERVER : All Lists are cleared!");
                 }
@@ -373,9 +413,9 @@ public class ServerConnectionHandler implements Runnable {
 
                     System.out.println("SERVER : HELP from client");
 
-                    _socketMngObjVar.output.writeUTF("214" + CRLF
+                    _socketMngObjVar.output.writeUTF(encrypt("214" + CRLF
                             + "Type HELP-<commandName> (without spaces) to receive informations about specific command."
-                            + CRLF + CRLF + allCmdsList);
+                            + CRLF + CRLF + allCmdsList));
                     _socketMngObjVar.output.flush();
                 }
 
@@ -389,35 +429,36 @@ public class ServerConnectionHandler implements Runnable {
             // ____________________HELP_INFORMATIONS_FOREACH_COMMAND______________________//
 
             if (clientMSG.contains("HELP -HELO") && GO_ON_CHECKS) {
-                _socketMngObjVar.output
-                        .writeUTF("\tHELO \t\tSpecify your domain name so that the mail server knows who you are.\n");
+                _socketMngObjVar.output.writeUTF(
+                        encrypt("\tHELO \t\tSpecify your domain name so that the mail server knows who you are.\n"));
                 _socketMngObjVar.output.flush();
             } else if (clientMSG.contains("HELP -MAIL") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
-                _socketMngObjVar.output.writeUTF("\tMAIL \t\tSpecify the sender email.\n");
+                _socketMngObjVar.output.writeUTF(encrypt("\tMAIL \t\tSpecify the sender email.\n"));
                 _socketMngObjVar.output.flush();
             } else if (clientMSG.contains("HELP -RCPT") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
-                _socketMngObjVar.output.writeUTF(
-                        "\tRCPT \t\tSpecify the recipient. Issue this command multiple times if you have more than one recipient.\n");
+                _socketMngObjVar.output.writeUTF(encrypt(
+                        "\tRCPT \t\tSpecify the recipient. Issue this command multiple times if you have more than one recipient.\n"));
                 _socketMngObjVar.output.flush();
             } else if (clientMSG.contains("HELP -DATA") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
                 _socketMngObjVar.output
-                        .writeUTF("\tDATA \t\tIssue this command before sending the body of the message.\n");
+                        .writeUTF(encrypt("\tDATA \t\tIssue this command before sending the body of the message.\n"));
                 _socketMngObjVar.output.flush();
             } else if (clientMSG.contains("HELP -QUIT") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
-                _socketMngObjVar.output.writeUTF("\tQUIT \t\tTerminates the conversation with the server.");
+                _socketMngObjVar.output.writeUTF(encrypt("\tQUIT \t\tTerminates the conversation with the server."));
                 _socketMngObjVar.output.flush();
             } else if (clientMSG.contains("HELP -RSET") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
-                _socketMngObjVar.output
-                        .writeUTF("\tRSET \t\tAborts the current conversation and start a new conversation.\n");
+                _socketMngObjVar.output.writeUTF(
+                        encrypt("\tRSET \t\tAborts the current conversation and start a new conversation.\n"));
                 _socketMngObjVar.output.flush();
             } else if (clientMSG.contains("HELP -NOOP") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
-                _socketMngObjVar.output.writeUTF("\tNOOP \t\tDoes nothing except to get a response from the server.\n");
+                _socketMngObjVar.output
+                        .writeUTF(encrypt("\tNOOP \t\tDoes nothing except to get a response from the server.\n"));
                 _socketMngObjVar.output.flush();
             }
 
             // END HELP COMMANDS
             ////////////////////////////////////////////////////////////////////
-            sm.output.writeUTF(sResponceToClient);
+            sm.output.writeUTF(encrypt(sResponceToClient));
         } catch (
 
         Exception except) {
