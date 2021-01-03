@@ -23,6 +23,8 @@ public class ServerConnectionHandler implements Runnable {
     private static final String ALGORITHM = "Blowfish";
     private static final String MODE = "Blowfish/CBC/PKCS5Padding";
     private static final String IV = "abcdefgh";
+    public String clientMSG = "";
+    public String userEmail = "";
 
     public ServerConnectionHandler(ArrayList<socketManager> inArrayListVar, socketManager inSocMngVar) {
         _socketMngObjVar = inSocMngVar;
@@ -58,7 +60,6 @@ public class ServerConnectionHandler implements Runnable {
                 KnownEmails.add("myEmail@ServerDomain.gr");
                 KnownEmails.add("receip@MyTestDomain.gr");
                 GO_ON_CHECKS = true;
-                String userEmail = "";
 
                 ArrayList<String> CommandStack = new ArrayList<String>(); // List of user commands
                 ArrayList<String> mail_data_buffer = new ArrayList<String>();
