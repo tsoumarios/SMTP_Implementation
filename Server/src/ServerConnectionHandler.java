@@ -26,11 +26,13 @@ public class ServerConnectionHandler implements Runnable {
     public String clientMSG = "";
     public String userEmail = "";
 
+    // Class Constructor
     public ServerConnectionHandler(ArrayList<socketManager> inArrayListVar, socketManager inSocMngVar) {
         _active_clients = inArrayListVar;
         _socketMngObjVar = inSocMngVar;
     }
 
+    // Encryption Method
     public static String encrypt(String value) throws Exception {
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
         Cipher cipher = Cipher.getInstance(MODE);
@@ -39,6 +41,7 @@ public class ServerConnectionHandler implements Runnable {
         return Base64.getEncoder().encodeToString(values);
     }
 
+    // Decryption Method
     public static String decrypt(String value) throws Exception {
         byte[] values = Base64.getDecoder().decode(value);
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
@@ -54,8 +57,9 @@ public class ServerConnectionHandler implements Runnable {
 
             if (!_socketMngObjVar.soc.isClosed()) { // Check if user is connected
 
-                ArrayList<String> KnownEmails = new ArrayList<String>(); // List of Knowns Email addresses
-                KnownEmails.add("ALICE@ThatDomain.gr");
+                // List of Knowns Email addresses
+                ArrayList<String> KnownEmails = new ArrayList<String>();
+                KnownEmails.add("alice@ThatDomain.gr");
                 KnownEmails.add("myEmail@MyTestDomain.gr");
                 KnownEmails.add("myEmail@ServerDomain.gr");
                 KnownEmails.add("receip@MyTestDomain.gr");
@@ -82,13 +86,14 @@ public class ServerConnectionHandler implements Runnable {
                             System.out.println(
                                     "550 " + userEmail + " is a wrong email, please try again. Type a valid email. ");
 
-                            // Send error response to client
+                            // Encrypt and Send error response to client
                             _socketMngObjVar.output.writeUTF(encrypt(
                                     "550 " + userEmail + " is a wrong email, please try again. Type a valid email. "));
                             _socketMngObjVar.output.flush();
                         }
                     } else {
 
+                        // Decryption of message
                         clientMSG = decrypt(_socketMngObjVar.input.readUTF());
 
                         System.out.println("SERVER : message FROM CLIENT : " + _socketMngObjVar.soc.getPort() + " --> "
@@ -99,7 +104,10 @@ public class ServerConnectionHandler implements Runnable {
                                     + " --> " + clientMSG);
                         } else {
                             System.out.println("No message from client");
-
+                            // Encrypt and Send error response to client
+                            _socketMngObjVar.output
+                                    .writeUTF(encrypt("550 No message received from client " + userEmail));
+                            _socketMngObjVar.output.flush();
                         }
                     }
                     activeClient.Handle(clientMSG); // Start handle the active user

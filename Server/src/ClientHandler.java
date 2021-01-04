@@ -21,28 +21,37 @@ public class ClientHandler {
     private static final String MODE = "Blowfish/CBC/PKCS5Padding";
     private static final String IV = "abcdefgh";
 
-    private ArrayList<String> CommandStack = new ArrayList<String>(); // List of user commands
+    // List of messages
     private ArrayList<String> mail_data_buffer = new ArrayList<String>();
-    private ArrayList<String> forward_path_buffer = new ArrayList<String>(); // List to include the Recipients of
-    // the emails
 
+    // List of user commands
+    private ArrayList<String> CommandStack = new ArrayList<String>();
+
+    // List to include the Recipients of the emails
+    private ArrayList<String> forward_path_buffer = new ArrayList<String>();
+
+    // List of Senders
     private ArrayList<String> reverse_path_buffer = new ArrayList<String>();
+
+    // List of active clients
     ArrayList<socketManager> _active_clients = null;
 
+    // Class constructor
     public ClientHandler(socketManager socMngOV, String clientMSG, ArrayList<socketManager> active_clients) {
         this._socketMngObjVar = socMngOV;
         this.clientMSG = clientMSG;
         this._active_clients = active_clients;
-
     }
 
-    public void Handle(String clientMSG) { // Start Handling the active client
+    // Start Handling the active client
+    public void Handle(String clientMSG) {
         this.clientMSG = clientMSG;
         Server_SMTP_Handler(this._socketMngObjVar, this.clientMSG, this.CommandStack, this.forward_path_buffer,
                 this.mail_data_buffer, this.reverse_path_buffer);
 
     }
 
+    // Encryption method
     public static String encrypt(String value) throws Exception {
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
         Cipher cipher = Cipher.getInstance(MODE);
@@ -51,6 +60,7 @@ public class ClientHandler {
         return Base64.getEncoder().encodeToString(values);
     }
 
+    // Decryption method
     public static String decrypt(String value) throws Exception {
         byte[] values = Base64.getDecoder().decode(value);
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
@@ -65,11 +75,6 @@ public class ClientHandler {
 
         boolean REQUESTED_DOMAIN_NOT_AVAILABLE = false;
         String ServerDomainName = "ServerDomain.gr";
-        // boolean SMTP_OUT_OF_STORAGE = false;
-        // boolean SMTP_INSUFFICIENT_STORAGE = false;
-        // boolean SMTP_LOCAL_PROCESSING_ERROR = false;
-        // boolean SUCCESS_STATE = false;
-        // boolean WAIT_STATE = true;
         String ResponceToClient = "";
         String ClientDomainName = "";
         String ClientEmail = "";
@@ -77,20 +82,18 @@ public class ClientHandler {
         String check2 = "";
         String ClientMsgToSend = "";
 
+        // List of commands
         String allCmdsList = "\tHELO\n" + "\tRCPT \n" + "\tMAIL\n" + "\tDATA\n" + "\tNOOP\n" + "\tRSET\n" + "\tQUIT\n";
 
-        ArrayList<String> UsersInServerDomain = new ArrayList<String>();
-        UsersInServerDomain.add("Alice");
-        UsersInServerDomain.add("Bob");
-        UsersInServerDomain.add("Mike");
-
+        // List of domains
         ArrayList<String> KnownDomains = new ArrayList<String>();
         KnownDomains.add("ThatDomain.gr");
         KnownDomains.add("MyTestDomain.gr");
         KnownDomains.add("ServerDomain.gr");
 
+        // List of emails
         ArrayList<String> KnownEmails = new ArrayList<String>();
-        KnownEmails.add("ALICE@ThatDomain.gr");
+        KnownEmails.add("alice@ThatDomain.gr");
         KnownEmails.add("myEmail@MyTestDomain.gr");
         KnownEmails.add("myEmail@ServerDomain.gr");
         KnownEmails.add("receip@MyTestDomain.gr");
@@ -104,18 +107,20 @@ public class ClientHandler {
                 // QUIT CMD
 
                 if (clientMSG.contains("QUIT")) {
-                    System.out.println("1 SERVER : QUIT client");
-                    //
-                    // SYNTAX (page 12 RFC 821)
-                    // QUIT <SP> <SERVER domain> <SP> Service closing transmission channel<CRLF>
-                    //
+                    System.out.println("SERVER : QUIT client");
+
+                    // Message encryption and send to client
                     sm.output.writeUTF(encrypt(
                             "221" + LF + ServerDomainName + LF + " Service closing transmission channel" + CRLF));
                     sm.output.flush();
+
+                    // remove client from active client list
                     _active_clients.remove(sm);
 
-                    System.out.print("6 SERVER : active clients : " + _active_clients.size());
+                    System.out.print("SERVER : active clients : " + _active_clients.size());
                     GO_ON_CHECKS = false;
+
+                    // Clear the Command List
                     CommandStack.clear();
 
                     return; // QUIT thread
@@ -127,6 +132,8 @@ public class ClientHandler {
                     System.out.println("error 500 -> Line too long");
                     SUCCESS_STATE = false;
                     GO_ON_CHECKS = false;
+
+                    // Message encryption and send to client
                     sm.output.writeUTF(encrypt(ResponceToClient));
                     sm.output.flush();
                 }
@@ -136,6 +143,8 @@ public class ClientHandler {
                     System.out.println("error 501 -> Syntax error in parameters or arguments");
                     SUCCESS_STATE = false;
                     GO_ON_CHECKS = false;
+
+                    // Message encryption and send to client
                     sm.output.writeUTF(encrypt(ResponceToClient));
                     sm.output.flush();
                 }
@@ -145,6 +154,8 @@ public class ClientHandler {
                     System.out.println("error 504 -> Command parameter not implemented");
                     SUCCESS_STATE = false;
                     GO_ON_CHECKS = false;
+
+                    // Message encryption and send to client
                     sm.output.writeUTF(encrypt(ResponceToClient));
                     sm.output.flush();
                 }
@@ -156,6 +167,8 @@ public class ClientHandler {
                     System.out.println("error 421 -> " + domain_not_found + " Service not available");
                     SUCCESS_STATE = false;
                     GO_ON_CHECKS = false;
+
+                    // Message encryption and send to client
                     sm.output.writeUTF(encrypt(ResponceToClient));
                     sm.output.flush();
                 }
@@ -175,6 +188,7 @@ public class ClientHandler {
                         ResponceToClient = "250" + LF + ServerDomainName + CRLF; // Make the response to Client
                         System.out.println("SERVER response: " + ResponceToClient); // Print client message
 
+                        // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         sm.output.flush(); // Flushes the data output stream
 
@@ -184,6 +198,8 @@ public class ClientHandler {
                         System.out.println("Client Domain Name is not in Domain List");
                         ResponceToClient = "451" + ClientDomainName + "is not in the Domain List" + CRLF; // Make the
                                                                                                           // response
+
+                        // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         sm.output.flush(); // Flushes the data output stream // to Client
                     }
@@ -206,16 +222,20 @@ public class ClientHandler {
                         if (KnownEmails.contains(ClientEmail)) { // Check if the client email is in the Known email list
                             System.out.println("SERVER : MAIL FROM from client");
                             reverse_path_buffer.add(ClientEmail);
+
+                            // Message encryption and send to client
                             sm.output.writeUTF(encrypt("250 OK" + CRLF));
                             sm.output.flush();
 
                             SUCCESS_STATE = true;
                             GO_ON_CHECKS = false;
-                            CommandStack.add("MAIL FROM");
+                            CommandStack.add("MAIL FROM");// Add command to the command stack
                             System.out.println(CommandStack);
                         } else {
                             System.out.println("Client Email is not in Email List");
                             ResponceToClient = ClientEmail + " is not in the EMAIL List" + CRLF; // Makes the response
+
+                            // Message encryption and send to client
                             sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                             sm.output.flush(); // Flushes the data output stream to Client
                         }
@@ -224,6 +244,8 @@ public class ClientHandler {
 
                         // Makes the response to Client
                         ResponceToClient = "451 MAIL FROM command faild. Implement HELO command before MAIL FROM.";
+
+                        // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         sm.output.flush(); // Flushes the data output stream // to Client
 
@@ -248,17 +270,20 @@ public class ClientHandler {
                                                                    // list
                             System.out.println("SERVER : RCPT TO from client");
 
+                            // Message encryption and send to client
                             sm.output.writeUTF(encrypt("250 OK" + CRLF));
                             sm.output.flush();
 
                             SUCCESS_STATE = true;
                             GO_ON_CHECKS = false;
-                            CommandStack.add("RCPT TO");
+                            CommandStack.add("RCPT TO"); // Add command to the command stack
                             System.out.println(CommandStack);
                         } else {
                             System.out.println("Client Email is not in Email List");
                             ResponceToClient = ClientEmail + " is not in the Known Emails List" + CRLF; // Make the
                                                                                                         // response
+
+                            // Message encryption and send to client
                             sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                             sm.output.flush(); // Flushes the data output stream // to Client
                         }
@@ -268,6 +293,8 @@ public class ClientHandler {
 
                         // Makes the response to Client
                         ResponceToClient = "451 RCPT TO command faild. Implement MAIL FROM or SEND FROM command before RCPT TO.";
+
+                        // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         sm.output.flush(); // Flushes the data output stream // to Client
                     }
@@ -277,11 +304,12 @@ public class ClientHandler {
                 ////////////////////////////////////////////////////////////////////
 
                 ////////////////////////////////////////////////////////////////////
-                // DATA start
+                // DATA Start
                 else if (clientMSG.contains("DATA") && GO_ON_CHECKS) {
 
                     if (CommandStack.contains("RCPT TO")) { // Check if RCPT TO is done
 
+                        // Message encryption and send to client
                         sm.output.writeUTF(encrypt("354 End data with <CRLF>.<CRLF>"));
                         sm.output.flush();
 
@@ -290,22 +318,40 @@ public class ClientHandler {
                             if (!Recipients.isEmpty()) {
 
                                 ClientMsgToSend = clientMSG.substring(clientMSG.indexOf(CRLF));
-                                mail_data_buffer.add(ClientMsgToSend);
+                                // Struct the message
+                                System.out.println("From: " + reverse_path_buffer.get(0) + LF + "To: ");
+                                // Loop through the recipient List and print the recipient email
+                                for (String recip : forward_path_buffer) {
+                                    System.out.println(recip + LF);
+                                }
                                 System.out.println(ClientMsgToSend);
+                                // Print the message just for testing perposes
 
+                                // Message encryption and send to client
+                                sm.output.writeUTF(encrypt(ClientMsgToSend + CRLF));
+                                sm.output.flush();
+
+                                mail_data_buffer.add(ClientMsgToSend);// Save the client message
+                                // The message is saved and send success to client
+
+                                // Message encryption and send to client
                                 sm.output.writeUTF(encrypt("250 OK" + CRLF));
                                 sm.output.flush();
 
                                 SUCCESS_STATE = true;
                                 GO_ON_CHECKS = false;
-                                CommandStack.add("DATA");
+                                CommandStack.add("DATA"); // Add command to the command stack
                                 System.out.println(CommandStack);
                             } else {
+
+                                // Message encryption and send to client
                                 sm.output.writeUTF(encrypt("451 Error: the message have no recipients."));
                                 sm.output.flush();
                                 System.out.println("451 Error: the message have no recipients.");
                             }
                         } else {
+
+                            // Message encryption and send to client
                             sm.output.writeUTF(encrypt("Error: the message does not end with <CRLF>.<CRLF>"));
                             sm.output.flush();
                             System.out.println("451 Error: the message does not end with <CRLF>.<CRLF>");
@@ -315,6 +361,8 @@ public class ClientHandler {
 
                         // Makes the response to Client
                         ResponceToClient = "451 DATA command faild. Implement RCPT TO command before DATA.";
+
+                        // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                         sm.output.flush(); // Flushes the data output stream // to Client
                     }
@@ -326,10 +374,12 @@ public class ClientHandler {
                 ////////////////////////////////////////////////////////////////////
                 // NOOP start
                 else if (clientMSG.contains("NOOP") && GO_ON_CHECKS) {
+                    CommandStack.add("NOOP"); // Add command to the command stack
 
                     System.out.println("SERVER : NOOP from client");
 
-                    sm.output.writeUTF(encrypt("250 OK" + CRLF));
+                    // Message encryption and send to client
+                    sm.output.writeUTF(encrypt("250 OK" + CRLF)); // Just return success message
                     sm.output.flush();
 
                 }
@@ -347,6 +397,7 @@ public class ClientHandler {
                     Recipients.clear(); // Clear the Recipients List
                     mail_data_buffer.clear(); // Clear the Mail List
 
+                    // Message encryption and send to client
                     sm.output.writeUTF(encrypt("250 OK" + CRLF));
                     sm.output.flush();
                     System.out.println("SERVER : All Lists are cleared!");
@@ -360,6 +411,7 @@ public class ClientHandler {
 
                     System.out.println("SERVER : HELP from client");
 
+                    // Message encryption and send to client
                     sm.output.writeUTF(encrypt("214" + CRLF
                             + "Type HELP-<commandName> (without spaces) to receive informations about specific command."
                             + CRLF + CRLF + allCmdsList));
@@ -376,27 +428,41 @@ public class ClientHandler {
             // ____________________HELP_INFORMATIONS_FOREACH_COMMAND______________________//
 
             if (clientMSG.contains("HELP -HELO") && GO_ON_CHECKS) {
+
+                // Message encryption and send to client
                 sm.output.writeUTF(
                         encrypt("\tHELO \t\tSpecify your domain name so that the mail server knows who you are.\n"));
                 sm.output.flush();
             } else if (clientMSG.contains("HELP -MAIL") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+
+                // Message encryption and send to client
                 sm.output.writeUTF(encrypt("\tMAIL \t\tSpecify the sender email.\n"));
                 sm.output.flush();
             } else if (clientMSG.contains("HELP -RCPT") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+
+                // Message encryption and send to client
                 sm.output.writeUTF(encrypt(
                         "\tRCPT \t\tSpecify the recipient. Issue this command multiple times if you have more than one recipient.\n"));
                 sm.output.flush();
             } else if (clientMSG.contains("HELP -DATA") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+
+                // Message encryption and send to client
                 sm.output.writeUTF(encrypt("\tDATA \t\tIssue this command before sending the body of the message.\n"));
                 sm.output.flush();
             } else if (clientMSG.contains("HELP -QUIT") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+
+                // Message encryption and send to client
                 sm.output.writeUTF(encrypt("\tQUIT \t\tTerminates the conversation with the server."));
                 sm.output.flush();
             } else if (clientMSG.contains("HELP -RSET") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+
+                // Message encryption and send to client
                 sm.output.writeUTF(
                         encrypt("\tRSET \t\tAborts the current conversation and start a new conversation.\n"));
                 sm.output.flush();
             } else if (clientMSG.contains("HELP -NOOP") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+
+                // Message encryption and send to client
                 sm.output.writeUTF(encrypt("\tNOOP \t\tDoes nothing except to get a response from the server.\n"));
                 sm.output.flush();
             }

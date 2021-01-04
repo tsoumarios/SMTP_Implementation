@@ -6,6 +6,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 import javax.crypto.spec.IvParameterSpec;
+import java.util.ArrayList;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -16,7 +17,8 @@ class ClientWriter implements Runnable {
     public static String SPACE = "      ";
     public static String ClientDomainName = "MyTestDomain.gr";
     public static String ClientEmailAddress = "myEmail@" + ClientDomainName;
-    public static String RCPTEmail = "receip@MyTestDomain.gr";
+    ArrayList<String> RCPTEmail = new ArrayList<String>();
+
     public static String ClientMsg = "This is a simple message end with" + CRLF + "." + CRLF;
     public static Boolean isLogedIn = false;
 
@@ -34,6 +36,7 @@ class ClientWriter implements Runnable {
     public ClientWriter(Socket outputSoc, AtomicBoolean isDATA) {
         cwSocket = outputSoc;
         this.isDATAflag = isDATA;
+
     }
 
     // Method for encription
@@ -69,7 +72,7 @@ class ClientWriter implements Runnable {
 
             String email = user_input.nextLine();
             // ecryption
-            dataOut.writeUTF(encrypt(email)); // Data encryption and Send data to clients));
+            dataOut.writeUTF(encrypt(email)); // Data encryption and Send data to client
             dataOut.flush(); // Send user given email address in order to verify and connect
 
             while (!cwSocket.isClosed() && !isDATAflag.get()) { // While the user is connected
@@ -105,6 +108,7 @@ class ClientWriter implements Runnable {
                             System.out.println("--------------------------");
                             System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET
                                     + "MAIL FROM:" + EC + ClientEmailAddress + CRLF);
+                            // The client email given hardcoded for testing purposes
 
                             msgToServer = ("MAIL FROM" + EC + ClientEmailAddress + CRLF);
 
@@ -116,14 +120,26 @@ class ClientWriter implements Runnable {
                         // RCPT TO Command
                         case "3": {
 
+                            // Here for testing puporses added hardcoded two recipients
+                            // to the RCPTEmail List for testing purposes
+                            RCPTEmail.add("receip@MyTestDomain.gr");
+                            RCPTEmail.add("alice@ThatDomain.gr");
+
                             System.out.println("CLIENT WRITER SENDING RCPT TO");
                             System.out.println("--------------------------");
-                            System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "RCPT TO:"
-                                    + EC + RCPTEmail + CRLF);
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "RCPT TO:" + EC);
+                            // Loop through the Recipient list to print them all
+                            for (String RCPTEmails : RCPTEmail) {
+                                System.out.println(RCPTEmails + CRLF);
+                            }
+                            // Loop through the Recipient list to send them all
+                            for (String RCPTEmails : RCPTEmail) {
+                                msgToServer = ("RCPT TO" + EC + RCPTEmails + CRLF);
+                                dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
+                                dataOut.flush();
+                            }
 
-                            msgToServer = ("RCPT TO" + EC + RCPTEmail + CRLF);
-                            dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
-                            dataOut.flush();
                             break;
                         }
                         // DATA Command
@@ -134,8 +150,7 @@ class ClientWriter implements Runnable {
                             System.out.println(
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "DATA" + CRLF);
 
-                            msgToServer = ("DATA" + CRLF + "From:" + ClientEmailAddress + LF + "To" + RCPTEmail + LF
-                                    + LF + ClientMsg);
+                            msgToServer = ("DATA" + CRLF + LF + ClientMsg);
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
                             dataOut.flush();
                             break;

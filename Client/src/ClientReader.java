@@ -7,7 +7,7 @@ import javax.crypto.spec.IvParameterSpec;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-// This thread is responcible for writing messages
+// This thread is responsible for writing messages
 class ClientReader implements Runnable {
     public static String ClientDomainName = "MyTestDomain.gr";
     public static String CRLF = "\r\n";
@@ -21,23 +21,25 @@ class ClientReader implements Runnable {
 
     public static Boolean isLogedIn = false;
 
-    public static Boolean isLogedIn() { // This static function return true if a user is veryfied
-        return isLogedIn;
-    }
-
+    // Class constructor
     public ClientReader(Socket inputSoc, AtomicBoolean isDATA) {
         crSocket = inputSoc;
         this.isDATAflag = isDATA;
     }
 
-    // we'll use following data for the data encryption
+    // This static function return true if a user is veryfied
+    public static Boolean isLogedIn() {
+        return isLogedIn;
+    }
 
+    // Variables used for data decryption
     private static String secretKey = "kdfslksdnflsdfsd";
 
     private static final String ALGORITHM = "Blowfish";
     private static final String MODE = "Blowfish/CBC/PKCS5Padding";
     private static final String IV = "abcdefgh";
 
+    // Decryption method
     public static String decrypt(String value) throws Exception {
         byte[] values = Base64.getDecoder().decode(value);
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
@@ -55,9 +57,7 @@ class ClientReader implements Runnable {
                 DataInputStream dataIn = new DataInputStream(crSocket.getInputStream());
 
                 BYTESin = decrypt(dataIn.readUTF());
-
-                /*****************************************************/
-                // **** Must be implemented with Swith - case *********
+                // Check all SMTP response messages
                 if (BYTESin.contains("221")) {
                     System.out.println("SERVER response: " + BYTESin);
                     System.out.println(ConsoleColors.RED + "...closing socket" + ConsoleColors.RESET);
@@ -84,11 +84,14 @@ class ClientReader implements Runnable {
                             .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
                     isLogedIn = true;
                     isDATAflag.set(false);
-                } else if (BYTESin.contains("250") && isDATAflag.get()) {
+                }
+                // When response is 250 and data transmition state is true
+                // (After execute success DATA command )
+                else if (BYTESin.contains("250") && isDATAflag.get()) {
                     System.out.println("SERVER response: " + BYTESin);
                     System.out
                             .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
-                    isDATAflag.set(false);
+                    isDATAflag.set(false); // Not in data transmition state
                 } else if (BYTESin.contains("251"))
                     System.out.println(
                             ConsoleColors.RED + "SERVER Error--> User not local will forward" + ConsoleColors.RESET);
@@ -100,7 +103,7 @@ class ClientReader implements Runnable {
                     System.out.println("SERVER response: " + ConsoleColors.GREEN + BYTESin + ConsoleColors.RESET);
                     System.out.println(ConsoleColors.GREEN + "OK -> CLIENT going to state I (wait for data)"
                             + ConsoleColors.RESET);
-                    isDATAflag.set(true);
+                    isDATAflag.set(true);// In data transmition state
 
                 } else if (BYTESin.contains("420"))
                     System.out.println(
