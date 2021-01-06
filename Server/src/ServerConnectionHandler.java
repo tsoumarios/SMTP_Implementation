@@ -1,6 +1,9 @@
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.crypto.spec.IvParameterSpec;
 
 import java.util.ArrayList;
@@ -17,6 +20,13 @@ public class ServerConnectionHandler implements Runnable {
 
     String ResponceToClient = "";
     Boolean SUCCESS_STATE;
+
+    // This map is used for store emails
+    // (params : <userEmailAddress>,<GivenMailMessage>)
+    Map<String, String> sharedMailbox = new HashMap<String, String>();
+    String mail = "";
+    // Emails and passwords
+    Map<String, String> Users = new HashMap<String, String>();
 
     // Encryption/decryption variables
     private static String secretKey = "kdfslksdnflsdfsd";
@@ -65,15 +75,32 @@ public class ServerConnectionHandler implements Runnable {
                 KnownEmails.add("receip@MyTestDomain.gr");
                 GO_ON_CHECKS = true;
 
+                // List of users
+                Users.put("alice@ThatDomain.gr", "123456");
+                Users.put("myEmail@MyTestDomain.gr", "123456");
+                Users.put("myEmail@ServerDomain.gr", "123456");
+                Users.put("receip@MyTestDomain.gr", "123456");
+
                 // Create an active client object to handle the active user
                 ClientHandler activeClient = new ClientHandler(_socketMngObjVar, clientMSG, _active_clients);
                 while (!_socketMngObjVar.soc.isClosed()) { // While a user is connected
+
+                    // If user is NOT Logged in
                     if (!isLoggedIn) {
 
                         // Decryption of message
                         userEmail = decrypt(_socketMngObjVar.input.readUTF());
 
-                        if (KnownEmails.contains(userEmail)) { // If the user's email exists in known email list
+                        String userGivenPass = decrypt(_socketMngObjVar.input.readUTF());
+                        String userActualPass = Users.get(userEmail);
+                        System.out.println("Given pass: " + userGivenPass);
+                        System.out.println("Actual pass: " + userActualPass);
+                        // if user's password is corect
+
+                        if (userActualPass.contains(userGivenPass)) { // If the user's
+                            // KnownEmails.contains(userEmail) && // email exists in
+                            // known email list
+
                             isLoggedIn = true;
                             // Print the response
                             System.out.println("Client " + userEmail + " is connected.");
@@ -81,6 +108,7 @@ public class ServerConnectionHandler implements Runnable {
                             // Send error response to client
                             _socketMngObjVar.output.writeUTF(encrypt("250 Client " + userEmail + " is connected."));
                             _socketMngObjVar.output.flush();
+
                         } else {
                             // Print the error response
                             System.out.println(
@@ -91,17 +119,26 @@ public class ServerConnectionHandler implements Runnable {
                                     "550 " + userEmail + " is a wrong email, please try again. Type a valid email. "));
                             _socketMngObjVar.output.flush();
                         }
-                    } else {
-
-                        // Decryption of message
+                    }
+                    // If user is Logged in
+                    else {
                         clientMSG = decrypt(_socketMngObjVar.input.readUTF());
-
-                        System.out.println("SERVER : message FROM CLIENT : " + _socketMngObjVar.soc.getPort() + " --> "
-                                + clientMSG);
-
+                        // If client message is not empty
                         if (!(clientMSG == "")) {
+
+                            // Decryption of message
+
                             System.out.println("SERVER : message FROM CLIENT : " + _socketMngObjVar.soc.getPort()
                                     + " --> " + clientMSG);
+
+                            activeClient.Handle(clientMSG); // Start handle the active user
+
+                            // If user sent an email
+                            if (!(activeClient.GetMail() == "")) {
+                                mail = activeClient.GetMail(); // Get the given mail
+                                sharedMailbox.put(userEmail, mail); // Store the mail
+                            }
+
                         } else {
                             System.out.println("No message from client");
                             // Encrypt and Send error response to client
@@ -110,7 +147,6 @@ public class ServerConnectionHandler implements Runnable {
                             _socketMngObjVar.output.flush();
                         }
                     }
-                    activeClient.Handle(clientMSG); // Start handle the active user
 
                 } // while socket NOT CLOSED
             }

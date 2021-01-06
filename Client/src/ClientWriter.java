@@ -68,16 +68,23 @@ class ClientWriter implements Runnable {
                     "\n--------------------------\n" + ConsoleColors.PURPLE_UNDERLINED + "Demo Emails:"
                             + ConsoleColors.RESET
                             + "\nALICE@ThatDomain.gr\nmyEmail@MyTestDomain.gr\nmyEmail@ServerDomain.gr\nreceip@MyTestDomain.gr \n"
-                            + "--------------------------\n\n" + "Please type your email: ");
+                            + ConsoleColors.YELLOW_UNDERLINED + "Password for all users is:" + ConsoleColors.RESET
+                            + " 123456\n" + "--------------------------\n\n"
+                            + "Please type your email and then your passwod: ");
 
             String email = user_input.nextLine();
             // ecryption
             dataOut.writeUTF(encrypt(email)); // Data encryption and Send data to client
             dataOut.flush(); // Send user given email address in order to verify and connect
 
+            String password = user_input.nextLine();
+            // ecryption
+            dataOut.writeUTF(encrypt(password)); // Data encryption and Send data to client
+            dataOut.flush(); // Send user given email address in order to verify and connect
+
             while (!cwSocket.isClosed() && !isDATAflag.get()) { // While the user is connected
 
-                TimeUnit.SECONDS.sleep(1); // Wait the response from the server
+                TimeUnit.SECONDS.sleep(2); // Wait the response from the server
 
                 isLogedIn = ClientReader.isLogedIn(); // True if a user is veryfied
 

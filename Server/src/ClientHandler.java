@@ -9,6 +9,7 @@ public class ClientHandler {
 
     private socketManager _socketMngObjVar = null;
     private String clientMSG = null;
+    private String _mailToSend = null;
     public static String CRLF = "\r\n";
     public static String LF = "\n";
     public static String EC = " ";
@@ -35,6 +36,11 @@ public class ClientHandler {
 
     // List of active clients
     ArrayList<socketManager> _active_clients = null;
+
+    // Return the giving mail in order to store it
+    public String GetMail() {
+        return _mailToSend;
+    }
 
     // Class constructor
     public ClientHandler(socketManager socMngOV, String clientMSG, ArrayList<socketManager> active_clients) {
@@ -97,6 +103,8 @@ public class ClientHandler {
         KnownEmails.add("myEmail@MyTestDomain.gr");
         KnownEmails.add("myEmail@ServerDomain.gr");
         KnownEmails.add("receip@MyTestDomain.gr");
+
+        ArrayList<String> RecipientsList = new ArrayList<String>();
 
         boolean GO_ON_CHECKS = true;
 
@@ -320,9 +328,11 @@ public class ClientHandler {
                                 ClientMsgToSend = clientMSG.substring(clientMSG.indexOf(CRLF));
                                 // Struct the message
                                 System.out.println("From: " + reverse_path_buffer.get(0) + LF + "To: ");
+
                                 // Loop through the recipient List and print the recipient email
                                 for (String recip : forward_path_buffer) {
                                     System.out.println(recip + LF);
+                                    RecipientsList.add(recip);
                                 }
                                 System.out.println(ClientMsgToSend);
                                 // Print the message just for testing perposes
@@ -331,7 +341,10 @@ public class ClientHandler {
                                 sm.output.writeUTF(encrypt(ClientMsgToSend + CRLF));
                                 sm.output.flush();
 
-                                mail_data_buffer.add(ClientMsgToSend);// Save the client message
+                                mail_data_buffer.add(ClientMsgToSend);// Save the client message to local list
+
+                                ClientMsgToSend = ("From: " + reverse_path_buffer.get(0) + LF + "To: ");
+
                                 // The message is saved and send success to client
 
                                 // Message encryption and send to client
