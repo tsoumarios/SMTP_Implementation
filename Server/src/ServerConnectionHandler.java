@@ -136,7 +136,7 @@ public class ServerConnectionHandler implements Runnable {
                             System.out.println("SERVER : message FROM CLIENT : " + _socketMngObjVar.soc.getPort()
                                     + " --> " + clientMSG);
 
-                            activeClient.Handle(clientMSG, mailBox); // Start handle the active user
+                            activeClient.Handle(clientMSG, mailBox, userEmail); // Start handle the active user
 
                         } else {
                             System.out.println("No message from client");

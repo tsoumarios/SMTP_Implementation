@@ -18,6 +18,7 @@ public class ClientHandler {
     public static String EC = " ";
     public static String ServerDomainName = "ServerDomain.gr";
     public MailBox mailBox;
+    public String userEmail;
     Boolean SUCCESS_STATE;
 
     // Encryption/decryption variables
@@ -54,9 +55,10 @@ public class ClientHandler {
     }
 
     // Start Handling the active client
-    public void Handle(String clientMSG, MailBox mailBox) {
+    public void Handle(String clientMSG, MailBox mailBox, String userEmail) {
         this.clientMSG = clientMSG;
         this.mailBox = mailBox;
+        this.userEmail = userEmail;
         Server_SMTP_Handler(this._socketMngObjVar, this.clientMSG, this.CommandStack, this.forward_path_buffer,
                 this.mail_data_buffer, this.reverse_path_buffer);
 
@@ -520,9 +522,9 @@ public class ClientHandler {
                 String mailsList = "";
                 System.out.println("SERVER : mailbox from client");
 
-                String mailBoxId = mailBox.getMailBoxId(reverse_path_buffer.get(0));
+                String mailBoxId = this.mailBox.getMailBoxId(userEmail);
 
-                mailsList = mailBox.Getmailbox(mailBoxId);
+                mailsList = this.mailBox.Getmailbox(mailBoxId);
 
                 System.out.println(mailsList);
                 if (mailsList == "") {
