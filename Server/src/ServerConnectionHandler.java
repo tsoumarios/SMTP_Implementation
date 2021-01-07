@@ -23,7 +23,7 @@ public class ServerConnectionHandler implements Runnable {
 
     // This map is used for store emails
     // (params : <userEmailAddress>,<GivenMailMessage>)
-    Map<String, String> sharedMailbox = new HashMap<String, String>();
+
     String mail = "";
     // Emails and passwords
     Map<String, String> Users = new HashMap<String, String>();
@@ -33,13 +33,17 @@ public class ServerConnectionHandler implements Runnable {
     private static final String ALGORITHM = "Blowfish";
     private static final String MODE = "Blowfish/CBC/PKCS5Padding";
     private static final String IV = "abcdefgh";
+    private MailBox mailBox = null;
     public String clientMSG = "";
     public String userEmail = "";
 
     // Class Constructor
-    public ServerConnectionHandler(ArrayList<socketManager> inArrayListVar, socketManager inSocMngVar) {
+
+    public ServerConnectionHandler(ArrayList<socketManager> inArrayListVar, socketManager inSocMngVar,
+            MailBox mailBox) {
         _active_clients = inArrayListVar;
         _socketMngObjVar = inSocMngVar;
+        this.mailBox = mailBox;
     }
 
     // Encryption Method
@@ -83,6 +87,7 @@ public class ServerConnectionHandler implements Runnable {
 
                 // Create an active client object to handle the active user
                 ClientHandler activeClient = new ClientHandler(_socketMngObjVar, clientMSG, _active_clients);
+
                 while (!_socketMngObjVar.soc.isClosed()) { // While a user is connected
 
                     // If user is NOT Logged in
@@ -131,13 +136,7 @@ public class ServerConnectionHandler implements Runnable {
                             System.out.println("SERVER : message FROM CLIENT : " + _socketMngObjVar.soc.getPort()
                                     + " --> " + clientMSG);
 
-                            activeClient.Handle(clientMSG); // Start handle the active user
-
-                            // If user sent an email
-                            if (!(activeClient.GetMail() == "")) {
-                                mail = activeClient.GetMail(); // Get the given mail
-                                sharedMailbox.put(userEmail, mail); // Store the mail
-                            }
+                            activeClient.Handle(clientMSG, mailBox); // Start handle the active user
 
                         } else {
                             System.out.println("No message from client");

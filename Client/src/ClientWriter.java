@@ -15,8 +15,8 @@ class ClientWriter implements Runnable {
     public static String LF = "\n";
     public static String EC = " ";
     public static String SPACE = "      ";
-    public static String ClientDomainName = "MyTestDomain.gr";
-    public static String ClientEmailAddress = "myEmail@" + ClientDomainName;
+    public static String ClientDomainName = "";
+    public static String ClientEmailAddress = "";
     ArrayList<String> RCPTEmail = new ArrayList<String>();
 
     public static String ClientMsg = "This is a simple message end with" + CRLF + "." + CRLF;
@@ -36,7 +36,6 @@ class ClientWriter implements Runnable {
     public ClientWriter(Socket outputSoc, AtomicBoolean isDATA) {
         cwSocket = outputSoc;
         this.isDATAflag = isDATA;
-
     }
 
     // Method for encription
@@ -50,9 +49,10 @@ class ClientWriter implements Runnable {
 
     // Print the command board
     private void userChoice() {
-        System.out.println("\nCLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND:" + CRLF + " 1...HELO" + SPACE
-                + " 2...MAIL TO" + EC + EC + "  3...RECV FROM" + CRLF + " 4...DATA" + SPACE + " 5...NOOP" + SPACE
-                + " 6...RSET" + CRLF + " 7...HELP" + SPACE + " 8...QUIT");
+        System.out.println("\nCLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND:" + CRLF + " 1...<HELO>"
+                + SPACE + " 2...<MAIL TO>" + EC + EC + "  3...<RECV FROM>" + CRLF + " 4...<DATA>" + SPACE
+                + " 5...<NOOP>" + SPACE + " 6...<RSET>" + CRLF + " 7...<HELP>" + SPACE + " 8...<QUIT>" + CRLF
+                + "Type <mailbox> to receive your emails.");
     }
 
     public void run() {
@@ -67,7 +67,7 @@ class ClientWriter implements Runnable {
             System.out.println( // Print the List of demo emails and ask user to type an email.
                     "\n--------------------------\n" + ConsoleColors.PURPLE_UNDERLINED + "Demo Emails:"
                             + ConsoleColors.RESET
-                            + "\nALICE@ThatDomain.gr\nmyEmail@MyTestDomain.gr\nmyEmail@ServerDomain.gr\nreceip@MyTestDomain.gr \n"
+                            + "\nalice@ThatDomain.gr\nmyEmail@MyTestDomain.gr\nmyEmail@ServerDomain.gr\nreceip@MyTestDomain.gr \n"
                             + ConsoleColors.YELLOW_UNDERLINED + "Password for all users is:" + ConsoleColors.RESET
                             + " 123456\n" + "--------------------------\n\n"
                             + "Please type your email and then your passwod: ");
@@ -87,6 +87,10 @@ class ClientWriter implements Runnable {
                 TimeUnit.SECONDS.sleep(2); // Wait the response from the server
 
                 isLogedIn = ClientReader.isLogedIn(); // True if a user is veryfied
+
+                ClientDomainName = email.substring(email.indexOf("@"));
+                ClientDomainName = ClientDomainName.replace("@", "");// Find the domain name
+                ClientEmailAddress = email;
 
                 // if user is Loged In
                 if (isLogedIn) {
@@ -137,15 +141,15 @@ class ClientWriter implements Runnable {
                             System.out.println(
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "RCPT TO:" + EC);
                             // Loop through the Recipient list to print them all
-                            for (String RCPTEmails : RCPTEmail) {
-                                System.out.println(RCPTEmails + CRLF);
-                            }
-                            // Loop through the Recipient list to send them all
-                            for (String RCPTEmails : RCPTEmail) {
-                                msgToServer = ("RCPT TO" + EC + RCPTEmails + CRLF);
-                                dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
-                                dataOut.flush();
-                            }
+                            // for (String RCPTEmails : RCPTEmail) {
+                            // System.out.println(RCPTEmails + CRLF);
+                            // }
+                            // // Loop through the Recipient list to send them all
+                            // for (String RCPTEmails : RCPTEmail) {
+                            msgToServer = ("RCPT TO" + EC + "receip@MyTestDomain.gr" + CRLF);
+                            dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
+                            dataOut.flush();
+                            // }
 
                             break;
                         }
@@ -306,6 +310,19 @@ class ClientWriter implements Runnable {
                                     ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
 
                             msgToServer = ("HELP -NOOP");
+                            dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "mailbox": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING mailbox");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "mailbox" + CRLF);
+
+                            msgToServer = ("mailbox\n");
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
                             dataOut.flush();
                             break;

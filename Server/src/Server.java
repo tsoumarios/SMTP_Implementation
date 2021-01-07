@@ -11,10 +11,12 @@ public class Server {
 
         // Portnumber:- number of the port we wish to connect on.
         int portNumber = 5000;
+
         try {
             ServerSocket serverSoc = new ServerSocket(portNumber);
             // Setup the socket for communication
             ArrayList<socketManager> clients = new ArrayList<socketManager>();
+            MailBox mailBox = new MailBox();
             try { // This try is used to finaly close the server socket instance
                 while (true) {
 
@@ -24,7 +26,7 @@ public class Server {
                     socketManager temp = new socketManager(soc);
                     clients.add(temp);
                     // create a new thread for the connection and start it.
-                    ServerConnectionHandler sch = new ServerConnectionHandler(clients, temp);
+                    ServerConnectionHandler sch = new ServerConnectionHandler(clients, temp, mailBox);
                     Thread schThread = new Thread(sch);
                     schThread.start();
                 }

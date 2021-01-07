@@ -1,6 +1,9 @@
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+
 import java.util.Base64;
+import java.util.List;
+
 import javax.crypto.spec.IvParameterSpec;
 
 import java.util.ArrayList;
@@ -14,6 +17,7 @@ public class ClientHandler {
     public static String LF = "\n";
     public static String EC = " ";
     public static String ServerDomainName = "ServerDomain.gr";
+    public MailBox mailBox;
     Boolean SUCCESS_STATE;
 
     // Encryption/decryption variables
@@ -50,8 +54,9 @@ public class ClientHandler {
     }
 
     // Start Handling the active client
-    public void Handle(String clientMSG) {
+    public void Handle(String clientMSG, MailBox mailBox) {
         this.clientMSG = clientMSG;
+        this.mailBox = mailBox;
         Server_SMTP_Handler(this._socketMngObjVar, this.clientMSG, this.CommandStack, this.forward_path_buffer,
                 this.mail_data_buffer, this.reverse_path_buffer);
 
@@ -73,6 +78,35 @@ public class ClientHandler {
         Cipher cipher = Cipher.getInstance(MODE);
         cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, new IvParameterSpec(IV.getBytes()));
         return new String(cipher.doFinal(values));
+    }
+
+    private void queueEMailsInInbox(MailBox mailBox) {
+
+        // ************************************
+
+        // Create the email based on client data
+        Mail eMail = new Mail();
+        eMail.setEmail(reverse_path_buffer.get(0), forward_path_buffer, String.join("\n", mail_data_buffer));
+        System.out.println("Received Email:");
+        eMail.printMsg();
+
+        System.out.println("Email queued for delivery:");
+        List<String> mailBoxesEmailForwardedTo = new ArrayList<>();
+        // Go through each email receipient address, find the mailbox the address belong
+        // and save the message to recipients mailbox
+        for (String f : forward_path_buffer) {
+            System.out.println(mailBox);
+            String mailBoxId = this.mailBox.getMailBoxId(f);
+            System.out.println(mailBoxId);
+            if (!mailBoxesEmailForwardedTo.contains(mailBoxId)) {
+                mailBoxesEmailForwardedTo.add(mailBoxId);
+                mailBox.saveMail(mailBoxId, eMail);
+                System.out.println("\tEmail saved in mail box " + mailBoxId + " for " + f);
+            } else {
+                System.out.println("\tEmail copy already present in shared mail box " + mailBoxId + " for " + f);
+            }
+
+        }
     }
 
     // Server_SMTP_Handler is responsible to Handle all possible SMTP requests
@@ -204,8 +238,8 @@ public class ClientHandler {
                         GO_ON_CHECKS = false;
                     } else {
                         System.out.println("Client Domain Name is not in Domain List");
-                        ResponceToClient = "451" + ClientDomainName + "is not in the Domain List" + CRLF; // Make the
-                                                                                                          // response
+                        ResponceToClient = "451 " + ClientDomainName + " is not in the Domain List" + CRLF; // Make the
+                                                                                                            // response
 
                         // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
@@ -330,25 +364,21 @@ public class ClientHandler {
                                 System.out.println("From: " + reverse_path_buffer.get(0) + LF + "To: ");
 
                                 // Loop through the recipient List and print the recipient email
-                                for (String recip : forward_path_buffer) {
+                                for (String recip : Recipients) {
                                     System.out.println(recip + LF);
                                     RecipientsList.add(recip);
                                 }
                                 System.out.println(ClientMsgToSend);
                                 // Print the message just for testing perposes
-
                                 // Message encryption and send to client
                                 sm.output.writeUTF(encrypt(ClientMsgToSend + CRLF));
                                 sm.output.flush();
 
                                 mail_data_buffer.add(ClientMsgToSend);// Save the client message to local list
-
-                                ClientMsgToSend = ("From: " + reverse_path_buffer.get(0) + LF + "To: ");
+                                queueEMailsInInbox(this.mailBox); // Save message to mailbox
 
                                 // The message is saved and send success to client
-
-                                // Message encryption and send to client
-                                sm.output.writeUTF(encrypt("250 OK" + CRLF));
+                                sm.output.writeUTF(encrypt("250 OK" + CRLF)); // Message encryption and send to client
                                 sm.output.flush();
 
                                 SUCCESS_STATE = true;
@@ -481,6 +511,32 @@ public class ClientHandler {
             }
 
             // END HELP COMMANDS
+            ////////////////////////////////////////////////////////////////////
+
+            ////////////////////////////////////////////////////////////////////
+            // MAILBOX start
+            else if (clientMSG.contains("mailbox") && GO_ON_CHECKS) {
+
+                String mailsList = "";
+                System.out.println("SERVER : mailbox from client");
+
+                String mailBoxId = mailBox.getMailBoxId(reverse_path_buffer.get(0));
+
+                mailsList = mailBox.Getmailbox(mailBoxId);
+
+                System.out.println(mailsList);
+                if (mailsList == "") {
+                    System.out.println("451 You have no emails yet.");
+                } else {
+                    System.out.println(mailsList);
+                    // Message encryption and send to client
+                    sm.output.writeUTF(encrypt("250 \n\n MAILBOX :" + CRLF + mailsList));
+
+                    sm.output.flush();
+                }
+            }
+
+            // END MAILBOX
             ////////////////////////////////////////////////////////////////////
 
         } catch (

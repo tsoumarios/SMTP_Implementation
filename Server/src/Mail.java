@@ -19,10 +19,22 @@ public class Mail {
         _timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
     }
 
+    // Sets an email
     public void setEmail(String From, ArrayList<String> To, String messageBody) {
         _fromAddress = From;
         _toAddress = To;
         _messageBody = messageBody;
+    }
+
+    // Returns an email
+    public String getEmail() {
+        String recipients = "";
+        for (String f : _toAddress) {
+            recipients = f + ", ";
+        }
+        String email = "\tFrom: " + _fromAddress + "\n" + "\tTo: " + recipients + "\n" + _timeStamp + "\n\n"
+                + _messageBody;
+        return email;
     }
 
     public void printMsg() {
