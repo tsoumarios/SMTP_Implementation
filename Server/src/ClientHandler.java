@@ -8,6 +8,9 @@ import java.util.Map;
 
 import javax.crypto.spec.IvParameterSpec;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class ClientHandler {
@@ -145,6 +148,13 @@ public class ClientHandler {
         KnownEmails.add("bob@MyTestDomain.gr");
         KnownEmails.add("jack@ServerDomain.gr");
         KnownEmails.add("james_bond@ThatDomain.gr");
+
+        // List of emails
+        ArrayList<String> EXPN_Users = new ArrayList<String>();
+        EXPN_Users.add("Lisa Aderson lisa@thatdomain.com");
+        EXPN_Users.add("Alex Piers alex@thatdomain.com");
+        EXPN_Users.add("Alison Rebt alison@thatdomain.com");
+        EXPN_Users.add("Lebron James lebron@thatdomain.com");
 
         ArrayList<String> RecipientsList = new ArrayList<String>();
 
@@ -474,10 +484,13 @@ public class ClientHandler {
                     CommandStack.add("EXPN"); // Add command to the command stack
 
                     System.out.println("SERVER : EXPN from client");
-                    for (String KnownEmail : KnownEmails)
+
+                    // Loop through EXPN_User List
+                    for (String EXPN_User : EXPN_Users) {
                         // Message encryption and send to client
-                        sm.output.writeUTF(encrypt("250 " + KnownEmail + CRLF)); // Just return success message
-                    sm.output.flush();
+                        sm.output.writeUTF(encrypt("250 " + EXPN_User + CRLF)); // Send user email
+                        sm.output.flush();
+                    }
 
                 }
                 // END EXPN
@@ -600,6 +613,96 @@ public class ClientHandler {
             // console
             System.out.println("Error --> " + except.getMessage());
         }
+    }
+
+}
+
+class Utils {
+    public static String CRLF = "\r\n";
+    public static String EC = " ";
+
+    /**
+     * Return the list of strings from a text file
+     * 
+     * @param filename
+     * @return
+     */
+    public static List<String> getInputFromFile(String filename) {
+        List<String> result = new ArrayList<>();
+        BufferedReader reader;
+        try {
+            reader = new BufferedReader(new FileReader(filename));
+            String line = reader.readLine();
+            while (line != null) {
+                result.add(line);
+                line = reader.readLine();
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    /**
+     * Remove the CRLF from the end of a string if present
+     * 
+     * @param s
+     * @return
+     */
+    public static String stripCRLF(String s) {
+        if (s.endsWith(Utils.CRLF))
+            s = s.substring(0, s.length() - CRLF.length());
+        return s;
+    }
+
+    // Logging Server interactions
+
+    /**
+     * Log sent data to the server
+     * 
+     * @param o
+     */
+    // public static void LogSend(Object o) {
+    // Log(ConsoleColors.BLUE + "Sent: " + ConsoleColors.RESET + o);
+    // }
+
+    /**
+     * Log server responses
+     * 
+     * @param o
+     */
+    // public static void LogReceived(Object o) {
+    // Log(ConsoleColors.GREEN + "Received: " + ConsoleColors.RESET + o);
+    // }
+
+    // /**
+    // * Log errors while interacting with the server
+    // *
+    // * @param o
+    // */
+    // public static void LogError(Object o) {
+    // Log(ConsoleColors.RED + "Error: " + ConsoleColors.RESET + o);
+    // }
+
+    /**
+     * Log a message
+     * 
+     * @param o
+     */
+    // public static void Log(Object o) {
+    // String s = stripCRLF(o.toString());
+    // println(new SimpleDateFormat("yyyy/MM/dd hh:mm:ss").format(new Date()) + ": "
+    // + s);
+    // }
+
+    // Printing to the console
+    public static void println(Object o) {
+        print(o + "\n");
+    }
+
+    public synchronized static void print(Object o) {
+        System.out.print(o);
     }
 
 }
