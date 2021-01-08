@@ -84,7 +84,7 @@ public class ClientHandler {
         return new String(cipher.doFinal(values));
     }
 
-    private void queueEMailsInInbox(MailBox mailBox) {
+    private void SaveEmailToMailBox(MailBox mailBox) {
 
         // ************************************
 
@@ -383,7 +383,7 @@ public class ClientHandler {
                                 sm.output.flush();
 
                                 mail_data_buffer.add(ClientMsgToSend);// Save the client message to local list
-                                queueEMailsInInbox(this.mailBox); // Save message to mailbox
+                                SaveEmailToMailBox(this.mailBox); // Save message to mailbox
 
                                 // The message is saved and send success to client
                                 sm.output.writeUTF(encrypt("250 OK" + CRLF)); // Message encryption and send to client
