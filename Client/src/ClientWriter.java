@@ -50,9 +50,9 @@ class ClientWriter implements Runnable {
     // Print the command board
     private void userChoice() {
         System.out.println("\nCLIENT WRITER: SELECT NUMBER CORRESPONDING TO SMTP COMMAND:" + CRLF + " 1...<HELO>"
-                + SPACE + " 2...<MAIL TO>" + EC + EC + "  3...<RECV FROM>" + CRLF + " 4...<DATA>" + SPACE
-                + " 5...<NOOP>" + SPACE + " 6...<RSET>" + CRLF + " 7...<HELP>" + SPACE + " 8...<QUIT>" + CRLF
-                + "Type <mailbox> to receive your emails.");
+                + SPACE + " 2...<MAIL FROM>" + EC + EC + "  3...<RCPT TO>" + CRLF + " 4...<DATA>" + SPACE
+                + " 5...<NOOP>" + SPACE + "   6...<RSET>" + CRLF + " 7...<VRFY>" + SPACE + " 8...<EXPN>" + SPACE
+                + "   9...<HELP>" + CRLF + " 10...<QUIT>" + CRLF + "\nType <mailbox> to receive your emails.");
     }
 
     public void run() {
@@ -67,32 +67,38 @@ class ClientWriter implements Runnable {
             System.out.println( // Print the List of demo emails and ask user to type an email.
                     "\n--------------------------\n" + ConsoleColors.PURPLE_UNDERLINED + "Demo Emails:"
                             + ConsoleColors.RESET
-                            + "\nalice@ThatDomain.gr\nmyEmail@MyTestDomain.gr\nmyEmail@ServerDomain.gr\nreceip@MyTestDomain.gr \n"
+                            + "\nalice@ThatDomain.gr\nbob@MyTestDomain.gr\njack@ServerDomain.gr\njames_bond@ThatDomain.gr \n"
                             + ConsoleColors.YELLOW_UNDERLINED + "Password for all users is:" + ConsoleColors.RESET
-                            + " 123456\n" + "--------------------------\n\n"
-                            + "Please type your email and then your passwod: ");
+                            + " 123456\n" + "--------------------------\n\n");
 
-            String email = user_input.nextLine();
-            // ecryption
-            dataOut.writeUTF(encrypt(email)); // Data encryption and Send data to client
-            dataOut.flush(); // Send user given email address in order to verify and connect
+            String email;
 
-            String password = user_input.nextLine();
-            // ecryption
-            dataOut.writeUTF(encrypt(password)); // Data encryption and Send data to client
-            dataOut.flush(); // Send user given email address in order to verify and connect
+            // Ask for user's credentials while user is not loged in
+
+            do {
+                System.out.println("Please type your email: ");
+                email = user_input.nextLine();
+                // ecryption
+                dataOut.writeUTF(encrypt(email)); // Data encryption and Send data to client
+                dataOut.flush(); // Send user given email address in order to verify and connect
+
+                System.out.println("Please type your password: ");
+                String password = user_input.nextLine();
+                // ecryption
+                dataOut.writeUTF(encrypt(password)); // Data encryption and Send data to client
+                dataOut.flush(); // Send user given email address in order to verify and connect
+                TimeUnit.SECONDS.sleep(3); // Wait the response from the server
+                isLogedIn = ClientReader.isLogedIn(); // True if a user is veryfied
+            } while (!isLogedIn);
 
             while (!cwSocket.isClosed() && !isDATAflag.get()) { // While the user is connected
-
-                TimeUnit.SECONDS.sleep(2); // Wait the response from the server
-
                 isLogedIn = ClientReader.isLogedIn(); // True if a user is veryfied
-
                 ClientDomainName = email.substring(email.indexOf("@"));
                 ClientDomainName = ClientDomainName.replace("@", "");// Find the domain name
                 ClientEmailAddress = email;
 
                 // if user is Loged In
+                TimeUnit.SECONDS.sleep(1); // Wait the response from the server
                 if (isLogedIn) {
 
                     userChoice(); // Print the command board
@@ -133,23 +139,23 @@ class ClientWriter implements Runnable {
 
                             // Here for testing puporses added hardcoded two recipients
                             // to the RCPTEmail List for testing purposes
-                            RCPTEmail.add("receip@MyTestDomain.gr");
-                            RCPTEmail.add("alice@ThatDomain.gr");
+                            RCPTEmail.add("james_bond@ThatDomain.gr");
+                            RCPTEmail.add("bob@MyTestDomain.gr");
 
                             System.out.println("CLIENT WRITER SENDING RCPT TO");
                             System.out.println("--------------------------");
-                            System.out.println(
-                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "RCPT TO:" + EC);
+
                             // Loop through the Recipient list to print them all
-                            // for (String RCPTEmails : RCPTEmail) {
-                            // System.out.println(RCPTEmails + CRLF);
-                            // }
-                            // // Loop through the Recipient list to send them all
-                            // for (String RCPTEmails : RCPTEmail) {
-                            msgToServer = ("RCPT TO" + EC + "receip@MyTestDomain.gr" + CRLF);
-                            dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
-                            dataOut.flush();
-                            // }
+                            for (String rcpt : RCPTEmail) {
+                                System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET
+                                        + "RCPT TO:" + EC + rcpt + CRLF);
+                            }
+                            // Loop through the Recipient list to send them all
+                            for (String rcpt : RCPTEmail) {
+                                msgToServer = ("RCPT TO" + EC + rcpt + CRLF);
+                                dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
+                                dataOut.flush();
+                            }
 
                             break;
                         }
@@ -186,6 +192,8 @@ class ClientWriter implements Runnable {
 
                             System.out.println("CLIENT WRITER CONVERSATION RESET");
                             System.out.println("--------------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "RSET" + CRLF);
 
                             msgToServer = ("RSET" + CRLF);
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
@@ -195,9 +203,41 @@ class ClientWriter implements Runnable {
 
                         }
 
+                        // VRFY Command
+                        case "7": {
+
+                            System.out.println("CLIENT SEND VRFY");
+                            System.out.println("--------------------------------");
+                            System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET
+                                    + "VRFY Bob Marley" + CRLF);
+
+                            msgToServer = ("VRFY" + EC + "Bob Marley" + CRLF);
+                            dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
+                            dataOut.flush();
+
+                            break;
+
+                        }
+
+                        // EXPN Command
+                        case "8": {
+
+                            System.out.println("CLIENT SEND EXPN");
+                            System.out.println("--------------------------------");
+                            System.out.println(ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET
+                                    + "EXPN Userlist" + CRLF);
+
+                            msgToServer = ("EXPN" + EC + "Userlist" + CRLF);
+                            dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
+                            dataOut.flush();
+
+                            break;
+
+                        }
+
                         // HELP Command
 
-                        case "7": {
+                        case "9": {
                             // CLIENT WRITER SET HELP
                             System.out.println("CLIENT WRITER SENDING HELP");
                             System.out.println("--------------------------");
@@ -211,7 +251,7 @@ class ClientWriter implements Runnable {
 
                         }
                         // QUIT Command
-                        case "8": {
+                        case "10": {
 
                             System.out.print("CLIENT : QUITing");
 
@@ -347,8 +387,8 @@ class ClientWriter implements Runnable {
 
                 }
 
-                isLogedIn = false; // When use is logged out
             } // while
+            isLogedIn = false; // When use is logged out
             user_input.close();
         } // try
 

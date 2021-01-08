@@ -2,7 +2,9 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.crypto.spec.IvParameterSpec;
 
@@ -10,15 +12,15 @@ import java.util.ArrayList;
 
 public class ClientHandler {
 
-    private socketManager _socketMngObjVar = null;
-    private String clientMSG = null;
-    private String _mailToSend = null;
     public static String CRLF = "\r\n";
     public static String LF = "\n";
     public static String EC = " ";
     public static String ServerDomainName = "ServerDomain.gr";
-    public MailBox mailBox;
-    public String userEmail;
+    private socketManager _socketMngObjVar = null;
+    private String clientMSG = null;
+    private String _mailToSend = null;
+    private MailBox mailBox;
+    private String userEmail;
     Boolean SUCCESS_STATE;
 
     // Encryption/decryption variables
@@ -123,7 +125,11 @@ public class ClientHandler {
         String ckeck1 = "";
         String check2 = "";
         String ClientMsgToSend = "";
-
+        Map<String, String> Usernames = new HashMap<String, String>();
+        Usernames.put(" Alison Creck", "alice@ThatDomain.gr");
+        Usernames.put(" Bob Marley", "bob@MyTestDomain.gr");
+        Usernames.put(" Jack Madison", "jack@ServerDomain.gr");
+        Usernames.put(" James Bond", "james_bond@ThatDomain.gr");
         // List of commands
         String allCmdsList = "\tHELO\n" + "\tRCPT \n" + "\tMAIL\n" + "\tDATA\n" + "\tNOOP\n" + "\tRSET\n" + "\tQUIT\n";
 
@@ -136,9 +142,9 @@ public class ClientHandler {
         // List of emails
         ArrayList<String> KnownEmails = new ArrayList<String>();
         KnownEmails.add("alice@ThatDomain.gr");
-        KnownEmails.add("myEmail@MyTestDomain.gr");
-        KnownEmails.add("myEmail@ServerDomain.gr");
-        KnownEmails.add("receip@MyTestDomain.gr");
+        KnownEmails.add("bob@MyTestDomain.gr");
+        KnownEmails.add("jack@ServerDomain.gr");
+        KnownEmails.add("james_bond@ThatDomain.gr");
 
         ArrayList<String> RecipientsList = new ArrayList<String>();
 
@@ -432,6 +438,52 @@ public class ClientHandler {
                 ////////////////////////////////////////////////////////////////////
 
                 ////////////////////////////////////////////////////////////////////
+                // VRFY start
+                else if (clientMSG.contains("VRFY") && GO_ON_CHECKS) {
+                    CommandStack.add("VRFY"); // Add command to the command stack
+
+                    System.out.println("SERVER : VRFY from client");
+                    String UserToVRFY = clientMSG.substring(clientMSG.indexOf(EC));
+                    UserToVRFY = UserToVRFY.replace(CRLF, "");
+
+                    System.out.println("VRFY:" + UserToVRFY);
+
+                    if (Usernames.containsKey(UserToVRFY)) {
+                        // Message encryption and send to client
+                        sm.output.writeUTF(encrypt("250" + UserToVRFY + " " + Usernames.get(UserToVRFY) + CRLF)); // Just
+                        // return success message and veryfication results
+                        sm.output.flush();
+                    } else {
+                        System.out.println("550 Unknown user. String does not match anything.");
+
+                        // Makes the response to Client
+                        ResponceToClient = "550 Unknown user. String does not match anything.";
+
+                        // Message encryption and send to client
+                        sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
+                        sm.output.flush(); // Flushes the data output stream // to Client
+                    }
+
+                }
+                // END VRFY
+                ////////////////////////////////////////////////////////////////////
+
+                ////////////////////////////////////////////////////////////////////
+                // EXPN start
+                else if (clientMSG.contains("EXPN") && GO_ON_CHECKS) {
+                    CommandStack.add("EXPN"); // Add command to the command stack
+
+                    System.out.println("SERVER : EXPN from client");
+                    for (String KnownEmail : KnownEmails)
+                        // Message encryption and send to client
+                        sm.output.writeUTF(encrypt("250 " + KnownEmail + CRLF)); // Just return success message
+                    sm.output.flush();
+
+                }
+                // END EXPN
+                ////////////////////////////////////////////////////////////////////
+
+                ////////////////////////////////////////////////////////////////////
                 // RSET start
                 // Check for RSET message for client
                 else if (clientMSG.contains("RSET") && GO_ON_CHECKS) {
@@ -524,16 +576,16 @@ public class ClientHandler {
 
                 String mailBoxId = this.mailBox.getMailBoxId(userEmail);
 
-                mailsList = this.mailBox.Getmailbox(mailBoxId);
-
-                System.out.println(mailsList);
-                if (mailsList == "") {
-                    System.out.println("451 You have no emails yet.");
-                } else {
-                    System.out.println(mailsList);
+                if (mailBox.haveEmails(mailBoxId)) {
+                    // Get the email List
+                    mailsList = this.mailBox.Getmailbox(mailBoxId);
+                    System.out.println("User " + userEmail + " have emails."); // Print in Server
                     // Message encryption and send to client
-                    sm.output.writeUTF(encrypt("250 \n\n MAILBOX :" + CRLF + mailsList));
-
+                    sm.output.writeUTF(encrypt("250 \n\n" + userEmail + " MAILBOX :" + CRLF + mailsList));
+                    sm.output.flush();
+                } else {
+                    System.out.println("451 You have not any emails yet.");
+                    sm.output.writeUTF(encrypt("451 You have not any emails yet."));
                     sm.output.flush();
                 }
             }

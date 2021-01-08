@@ -11,11 +11,21 @@ public class MailBox {
     // Initialize the mail box and addresses
     {
         mailBoxAddresses.put("1", "alice@ThatDomain.gr");
-        mailBoxAddresses.put("2", "myEmail@MyTestDomain.gr");
-        mailBoxAddresses.put("3", "myEmail@ServerDomain.gr");
-        mailBoxAddresses.put("4", "receip@MyTestDomain.gr");
+        mailBoxAddresses.put("2", "bob@MyTestDomain.gr");
+        mailBoxAddresses.put("3", "jack@ServerDomain.gr");
+        mailBoxAddresses.put("4", "james_bond@ThatDomain.gr");
 
         mailBoxes = new HashMap<>();
+    }
+
+    // Returns true if a user have emails
+    public Boolean haveEmails(String mailBoxId) {
+
+        if (mailBoxes.containsKey(mailBoxId)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     // Returns the shared mailbox id associated with an email address
@@ -24,7 +34,7 @@ public class MailBox {
         return mailBoxId;
     }
 
-    // *****************
+    // Map Key search method
     public static <K, V> K getKey(Map<K, V> mailBoxAddresses, V value) {
         for (Entry<K, V> entry : mailBoxAddresses.entrySet()) {
             if (entry.getValue().equals(value)) {

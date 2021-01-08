@@ -21,21 +21,20 @@ public class ServerConnectionHandler implements Runnable {
     String ResponceToClient = "";
     Boolean SUCCESS_STATE;
 
-    // This map is used for store emails
-    // (params : <userEmailAddress>,<GivenMailMessage>)
-
     String mail = "";
     // Emails and passwords
     Map<String, String> Users = new HashMap<String, String>();
 
     // Encryption/decryption variables
-    private static String secretKey = "kdfslksdnflsdfsd";
-    private static final String ALGORITHM = "Blowfish";
-    private static final String MODE = "Blowfish/CBC/PKCS5Padding";
-    private static final String IV = "abcdefgh";
+    private String secretKey = "kdfslksdnflsdfsd";
+    private final String ALGORITHM = "Blowfish";
+    private final String MODE = "Blowfish/CBC/PKCS5Padding";
+    private final String IV = "abcdefgh";
     private MailBox mailBox = null;
-    public String clientMSG = "";
-    public String userEmail = "";
+    private String clientMSG = "";
+    private String userEmail = "";
+    private String userGivenPass = "";
+    private String userActualPass = "";
 
     // Class Constructor
 
@@ -47,7 +46,7 @@ public class ServerConnectionHandler implements Runnable {
     }
 
     // Encryption Method
-    public static String encrypt(String value) throws Exception {
+    public String encrypt(String value) throws Exception {
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
         Cipher cipher = Cipher.getInstance(MODE);
         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, new IvParameterSpec(IV.getBytes()));
@@ -56,7 +55,7 @@ public class ServerConnectionHandler implements Runnable {
     }
 
     // Decryption Method
-    public static String decrypt(String value) throws Exception {
+    public String decrypt(String value) throws Exception {
         byte[] values = Base64.getDecoder().decode(value);
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(), ALGORITHM);
         Cipher cipher = Cipher.getInstance(MODE);
@@ -74,16 +73,16 @@ public class ServerConnectionHandler implements Runnable {
                 // List of Knowns Email addresses
                 ArrayList<String> KnownEmails = new ArrayList<String>();
                 KnownEmails.add("alice@ThatDomain.gr");
-                KnownEmails.add("myEmail@MyTestDomain.gr");
-                KnownEmails.add("myEmail@ServerDomain.gr");
-                KnownEmails.add("receip@MyTestDomain.gr");
+                KnownEmails.add("bob@MyTestDomain.gr");
+                KnownEmails.add("jack@ServerDomain.gr");
+                KnownEmails.add("james_bond@ThatDomain.gr");
                 GO_ON_CHECKS = true;
 
                 // List of users
                 Users.put("alice@ThatDomain.gr", "123456");
-                Users.put("myEmail@MyTestDomain.gr", "123456");
-                Users.put("myEmail@ServerDomain.gr", "123456");
-                Users.put("receip@MyTestDomain.gr", "123456");
+                Users.put("bob@MyTestDomain.gr", "123456");
+                Users.put("jack@ServerDomain.gr", "123456");
+                Users.put("james_bond@ThatDomain.gr", "123456");
 
                 // Create an active client object to handle the active user
                 ClientHandler activeClient = new ClientHandler(_socketMngObjVar, clientMSG, _active_clients);
@@ -92,38 +91,42 @@ public class ServerConnectionHandler implements Runnable {
 
                     // If user is NOT Logged in
                     if (!isLoggedIn) {
+                        do {
+                            // Decryption of message and take the user name
+                            userEmail = decrypt(_socketMngObjVar.input.readUTF());
 
-                        // Decryption of message
-                        userEmail = decrypt(_socketMngObjVar.input.readUTF());
+                            // Decryption of message and take the user password
+                            userGivenPass = decrypt(_socketMngObjVar.input.readUTF());
+                            // Get the users corect password
+                            userActualPass = Users.get(userEmail);
 
-                        String userGivenPass = decrypt(_socketMngObjVar.input.readUTF());
-                        String userActualPass = Users.get(userEmail);
-                        System.out.println("Given pass: " + userGivenPass);
-                        System.out.println("Actual pass: " + userActualPass);
-                        // if user's password is corect
+                            System.out.println("Given pass: " + userGivenPass);
+                            System.out.println("Actual pass: " + userActualPass);
 
-                        if (userActualPass.contains(userGivenPass)) { // If the user's
-                            // KnownEmails.contains(userEmail) && // email exists in
-                            // known email list
+                            // if given password is matches with user's password
+                            if (userActualPass.matches(userGivenPass)) {
 
-                            isLoggedIn = true;
-                            // Print the response
-                            System.out.println("Client " + userEmail + " is connected.");
+                                isLoggedIn = true;
+                                // Print the response
+                                System.out.println("Client " + userEmail + " is connected.");
 
-                            // Send error response to client
-                            _socketMngObjVar.output.writeUTF(encrypt("250 Client " + userEmail + " is connected."));
-                            _socketMngObjVar.output.flush();
+                                // Send error response to client
+                                _socketMngObjVar.output.writeUTF(encrypt("250 Client " + userEmail + " is connected."));
+                                _socketMngObjVar.output.flush();
 
-                        } else {
-                            // Print the error response
-                            System.out.println(
-                                    "550 " + userEmail + " is a wrong email, please try again. Type a valid email. ");
+                            } else {
+                                // Print the error response
+                                System.out.println("550 " + userEmail
+                                        + " is a wrong email, please try again. Type a valid email. ");
 
-                            // Encrypt and Send error response to client
-                            _socketMngObjVar.output.writeUTF(encrypt(
-                                    "550 " + userEmail + " is a wrong email, please try again. Type a valid email. "));
-                            _socketMngObjVar.output.flush();
-                        }
+                                // Encrypt and Send error response to client
+                                _socketMngObjVar.output.writeUTF(encrypt("550 " + userEmail
+                                        + " is a wrong email, please try again. Type a valid email. "));
+                                _socketMngObjVar.output.flush();
+
+                            }
+
+                        } while (!isLoggedIn);
                     }
                     // If user is Logged in
                     else {

@@ -30,25 +30,27 @@ public class Mail {
     public String getEmail() {
         String recipients = "";
         for (String f : _toAddress) {
-            recipients = f + ", ";
+            recipients = "\t" + f + ", ";
         }
-        String email = "\tFrom: " + _fromAddress + "\n" + "\tTo: " + recipients + "\n" + _timeStamp + "\n\n"
-                + _messageBody;
+        String line = "\n================================";
+        String email = line + "\n\nFrom: " + _fromAddress + "\n" + "To: " + recipients + "\n" + "DateTime: "
+                + _timeStamp + "\n" + "\nMessage body: " + _messageBody + line + "\n";
         return email;
     }
 
     public void printMsg() {
-        System.out.println("\tFrom: " + _fromAddress + "\n");
+        System.out.println("\n\tFrom: " + _fromAddress + "\n");
 
         System.out.println("\tTo: ");
         for (String f : _toAddress) {
-            System.out.println(f + ", ");
+            System.out.println("\t" + f + ", ");
         }
-        System.out.println(_timeStamp);
-        System.out.println("\tData");
+        System.out.println("\n\tDateTime: " + _timeStamp);
+        System.out.println("\tMessage body: ");
         String[] data = _messageBody.split("\n");
         for (String f : data) {
-            System.out.println("\t\t" + f);
+            System.out.println("\t" + f);
         }
+        System.out.println("\n");
     }
 }

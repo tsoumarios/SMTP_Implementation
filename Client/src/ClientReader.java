@@ -59,63 +59,68 @@ class ClientReader implements Runnable {
                 BYTESin = decrypt(dataIn.readUTF());
                 // Check all SMTP response messages
                 if (BYTESin.contains("221")) {
-                    System.out.println("SERVER response: " + BYTESin);
-                    System.out.println(ConsoleColors.RED + "...closing socket" + ConsoleColors.RESET);
+                    System.out.println("\nSERVER response: " + BYTESin);
+                    System.out.println(ConsoleColors.RED + "...closing socket" + ConsoleColors.RESET + "\n");
                     crSocket.close();
                     return;
                 } else if (BYTESin.contains("101")) {
-                    System.out.println(ConsoleColors.YELLOW + "The server is unable to connect." + ConsoleColors.RESET);
+                    System.out.println(
+                            ConsoleColors.YELLOW + "The server is unable to connect." + ConsoleColors.RESET + "\n");
                 } else if (BYTESin.contains("111")) {
                     System.out.println(ConsoleColors.YELLOW + "Connection refused or inability to open an SMTP stream."
-                            + ConsoleColors.RESET);
-                    System.out.println("SERVER response: " + BYTESin);
+                            + ConsoleColors.RESET + "\n");
+                    System.out.println("\nSERVER response: " + BYTESin);
                 } else if (BYTESin.contains("211")) {
                     System.out.println(
-                            ConsoleColors.YELLOW + "System status message or help reply." + ConsoleColors.RESET);
-                    System.out.println("SERVER response: " + BYTESin);
+                            ConsoleColors.YELLOW + "System status message or help reply." + ConsoleColors.RESET + "\n");
+                    System.out.println("\nSERVER response: " + BYTESin);
                 } else if (BYTESin.contains("214")) {
-                    System.out.println("SERVER response: " + ConsoleColors.YELLOW + BYTESin + ConsoleColors.RESET);
+                    System.out.println(
+                            "\nSERVER response: " + ConsoleColors.YELLOW + BYTESin + ConsoleColors.RESET + "\n");
                 } else if (BYTESin.contains("220")) {
-                    System.out.println(ConsoleColors.GREEN + "The server is ready." + ConsoleColors.RESET);
-                    System.out.println("SERVER response: " + ConsoleColors.YELLOW + BYTESin + ConsoleColors.RESET);
+                    System.out.println(ConsoleColors.GREEN + "The server is ready." + ConsoleColors.RESET + "\n");
+                    System.out.println(
+                            "\nSERVER response: " + ConsoleColors.YELLOW + BYTESin + ConsoleColors.RESET + "\n");
                 } else if (BYTESin.contains("250")) {
-                    System.out.println(ConsoleColors.YELLOW + "SERVER response: " + BYTESin + ConsoleColors.RESET);
                     System.out
-                            .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
+                            .println(ConsoleColors.YELLOW + "SERVER response: " + BYTESin + ConsoleColors.RESET + "\n");
+                    System.out.println(
+                            ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET + "\n");
                     isLogedIn = true;
                     isDATAflag.set(false);
                 }
                 // When response is 250 and data transmition state is true
                 // (After execute success DATA command )
                 else if (BYTESin.contains("250") && isDATAflag.get()) {
-                    System.out.println("SERVER response: " + BYTESin);
-                    System.out
-                            .println(ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET);
+                    System.out.println("\nSERVER response: " + BYTESin);
+                    System.out.println(
+                            ConsoleColors.GREEN + "OK -> CLIENT going to state SUCCESS" + ConsoleColors.RESET + "\n");
                     isDATAflag.set(false); // Not in data transmition state
                 } else if (BYTESin.contains("251"))
-                    System.out.println(
-                            ConsoleColors.RED + "SERVER Error--> User not local will forward" + ConsoleColors.RESET);
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> User not local will forward"
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("252"))
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error--> The server cannot verify the user, but it will try to deliver the message anyway."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("354")) {
-                    System.out.println("SERVER response: " + ConsoleColors.GREEN + BYTESin + ConsoleColors.RESET);
+                    System.out.println(
+                            "\nSERVER response: " + ConsoleColors.GREEN + BYTESin + ConsoleColors.RESET + "\n");
                     System.out.println(ConsoleColors.GREEN + "OK -> CLIENT going to state I (wait for data)"
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                     isDATAflag.set(true);// In data transmition state
 
                 } else if (BYTESin.contains("420"))
-                    System.out.println(
-                            ConsoleColors.RED + "SERVER Error--> Timeout connection problem." + ConsoleColors.RESET);
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> Timeout connection problem."
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("421"))
                     System.out.println(
                             ConsoleColors.RED + "SERVER Error-->Service not available, closing transmission channel"
-                                    + ConsoleColors.RESET);
+                                    + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("422"))
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error--> The recipient’s mailbox has exceeded its storage limit."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("431"))
                     System.out.println("Not enough space on the disk, out of memory");
                 else if (BYTESin.contains("432"))
@@ -131,76 +136,79 @@ class ClientReader implements Runnable {
                     System.out.println(
                             "Your outgoing message timed out because of issues concerning the incoming server.");
                 else if (BYTESin.contains("449"))
-                    System.out.println(ConsoleColors.RED + "A routing error." + ConsoleColors.RESET);
+                    System.out.println(ConsoleColors.RED + "A routing error." + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("450"))
                     System.out.println("Requested action not taken – The user’s mailbox is unavailable.");
                 else if (BYTESin.contains("451")) {
-                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println("\nSERVER response: " + BYTESin);
                     System.out.println(
                             ConsoleColors.RED + "SERVER Error-->Requested action aborted – Local error in processing"
-                                    + ConsoleColors.RESET);
+                                    + ConsoleColors.RESET + "\n");
                 } else if (BYTESin.contains("452")) {
-                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println("\nSERVER response: " + BYTESin);
                     System.out.println(ConsoleColors.RED + "SERVER Error-->Too many emails sent or too many recipients."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 } else if (BYTESin.contains("471")) {
-                    System.out.println("SERVER response: " + BYTESin);
+                    System.out.println("\nSERVER response: " + BYTESin);
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error-->An error of your mail server, often due to an issue of the local anti-spam filter."
-                            + ConsoleColors.RESET);
-                } else if (BYTESin.contains("500"))
+                            + ConsoleColors.RESET + "\n");
+                } else if (BYTESin.contains("500")) {
+                    System.out.println("\nSERVER response: " + BYTESin);
                     System.out.println(ConsoleColors.RED + "SERVER Error--> Syntax error, command unrecognized."
-                            + ConsoleColors.RESET);
-                else if (BYTESin.contains("501"))
+                            + ConsoleColors.RESET + "\n");
+                } else if (BYTESin.contains("501"))
                     System.out.println(ConsoleColors.RED + "SERVER Error--> Syntax error in parameters or arguments."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("502"))
                     System.out.println(ConsoleColors.RED + "SERVER Error--> The command is not implemented."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("503"))
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error--> The server has encountered a bad sequence of commands, or it requires an authentication."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("504"))
                     System.out.println(ConsoleColors.RED + "SERVER Error--> Command parameter not implemented"
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("510") || BYTESin.contains("511"))
-                    System.out.println(ConsoleColors.RED + "SERVER Error--> Bad email address." + ConsoleColors.RESET);
+                    System.out.println(
+                            ConsoleColors.RED + "SERVER Error--> Bad email address." + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("512"))
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error--> A DNS error: the host server for the recipient’s domain name cannot be found."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("513"))
-                    System.out.println(
-                            ConsoleColors.RED + "SERVER Error--> Address type is incorrect." + ConsoleColors.RESET);
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> Address type is incorrect."
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("523"))
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error--> The total size of your mailing exceeds the recipient server’s limits."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("530"))
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error--> Normally, an authentication problem. But sometimes it’s about the recipient’s server blacklisting yours, or an invalid email address."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("541"))
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error--> The recipient address rejected your message: normally, it’s an error caused by an anti-spam filter."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("550")) {
-                    isLogedIn = false;
+
+                    System.out.println("\nSERVER response: " + BYTESin);
                     System.out.println(ConsoleColors.RED
                             + "SERVER Error--> It usually defines a non-existent email address on the remote side."
-                            + ConsoleColors.RESET);
+                            + ConsoleColors.RESET + "\n");
                 } else if (BYTESin.contains("551"))
                     System.out.println(
                             ConsoleColors.RED + "SERVER Error--> User not local or invalid address – Relay denied."
-                                    + ConsoleColors.RESET);
+                                    + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("553"))
                     System.out.println(
                             ConsoleColors.RED + "SERVER Error--> Requested action not taken – Mailbox name invalid."
-                                    + ConsoleColors.RESET);
+                                    + ConsoleColors.RESET + "\n");
                 else if (BYTESin.contains("554"))
-                    System.out.println(
-                            ConsoleColors.RED + "SERVER Error--> the transaction has failed." + ConsoleColors.RESET);
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> the transaction has failed."
+                            + ConsoleColors.RESET + "\n");
                 // PRINT HELP MESSAGES
                 else if (BYTESin.contains("\tHELO") || BYTESin.contains("\tRCPT") || BYTESin.contains("\tMAIL")
                         || BYTESin.contains("\tDATA") || BYTESin.contains("\tNOOP") || BYTESin.contains("\tRSET")
