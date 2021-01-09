@@ -32,9 +32,7 @@ type "mailbox". User should be logged in to the system to receive the mailbox.
 
 # Explanation of the program
 
-#################################
 --------- Client Side -----------
-#################################
 
 1. HELO command uses as domain name, the given from the user email address,
    cuts the domain, and then sends it to the server.
@@ -57,9 +55,7 @@ type "mailbox". User should be logged in to the system to receive the mailbox.
 
 10. QUIT sends a request for exit.
 
-#################################
 --------- Server Side -----------
-#################################
 
 1. HELO grabs the domain name and checks if exists in servers known domain list.
    If exists response with 250 OK else response 451 error.
