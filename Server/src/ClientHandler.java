@@ -8,9 +8,6 @@ import java.util.Map;
 
 import javax.crypto.spec.IvParameterSpec;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 
 public class ClientHandler {
@@ -134,7 +131,8 @@ public class ClientHandler {
         Usernames.put(" Jack Madison", "jack@ServerDomain.gr");
         Usernames.put(" James Bond", "james_bond@ThatDomain.gr");
         // List of commands
-        String allCmdsList = "\tHELO\n" + "\tRCPT \n" + "\tMAIL\n" + "\tDATA\n" + "\tNOOP\n" + "\tRSET\n" + "\tQUIT\n";
+        String allCmdsList = "\tHELO\n" + "\tRCPT \n" + "\tMAIL\n" + "\tDATA\n" + "\tNOOP\n" + "\tVRFY\n" + "\tEXPN\n"
+                + "\tRSET\n" + "\tQUIT\n";
 
         // List of domains
         ArrayList<String> KnownDomains = new ArrayList<String>();
@@ -292,18 +290,19 @@ public class ClientHandler {
                             CommandStack.add("MAIL FROM");// Add command to the command stack
                             System.out.println(CommandStack);
                         } else {
-                            System.out.println("Client Email is not in Email List");
-                            ResponceToClient = ClientEmail + " is not in the EMAIL List" + CRLF; // Makes the response
+                            System.out.println("451 Client Email is not in Email List");
+                            ResponceToClient = "451" + ClientEmail + " is not in the EMAIL List" + CRLF; // Makes the
+                                                                                                         // response
 
                             // Message encryption and send to client
                             sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
                             sm.output.flush(); // Flushes the data output stream to Client
                         }
                     } else { // if HELO is not implemented
-                        System.out.println("451 MAIL FROM command faild. Implement HELO command before MAIL FROM.");
+                        System.out.println("500 MAIL FROM command faild. Implement HELO command before MAIL FROM.");
 
                         // Makes the response to Client
-                        ResponceToClient = "451 MAIL FROM command faild. Implement HELO command before MAIL FROM.";
+                        ResponceToClient = "500 MAIL FROM command faild. Implement HELO command before MAIL FROM.";
 
                         // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
@@ -339,9 +338,10 @@ public class ClientHandler {
                             CommandStack.add("RCPT TO"); // Add command to the command stack
                             System.out.println(CommandStack);
                         } else {
-                            System.out.println("Client Email is not in Email List");
-                            ResponceToClient = ClientEmail + " is not in the Known Emails List" + CRLF; // Make the
-                                                                                                        // response
+                            System.out.println("451 Client Email is not in Email List");
+                            ResponceToClient = "451" + ClientEmail + " is not in the Known Emails List" + CRLF; // Make
+                                                                                                                // the
+                            // response
 
                             // Message encryption and send to client
                             sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
@@ -349,10 +349,10 @@ public class ClientHandler {
                         }
                     } else { // if MAIL FROM or SEND FROM command is not implemented
                         System.out.println(
-                                "451 RCPT TO command faild. Implement MAIL FROM or SEND FROM command before RCPT TO.");
+                                "500 RCPT TO command faild. Implement MAIL FROM or SEND FROM command before RCPT TO.");
 
                         // Makes the response to Client
-                        ResponceToClient = "451 RCPT TO command faild. Implement MAIL FROM or SEND FROM command before RCPT TO.";
+                        ResponceToClient = "500 RCPT TO command faild. Implement MAIL FROM or SEND FROM command before RCPT TO.";
 
                         // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
@@ -415,13 +415,13 @@ public class ClientHandler {
                             // Message encryption and send to client
                             sm.output.writeUTF(encrypt("Error: the message does not end with <CRLF>.<CRLF>"));
                             sm.output.flush();
-                            System.out.println("451 Error: the message does not end with <CRLF>.<CRLF>");
+                            System.out.println("500 Error: the message does not end with <CRLF>.<CRLF>");
                         }
                     } else { // if RCPT TO is not implemented
-                        System.out.println("451 DATA command faild. Implement RCPT TO command before DATA.");
+                        System.out.println("500 DATA command faild. Implement RCPT TO command before DATA.");
 
                         // Makes the response to Client
-                        ResponceToClient = "451 DATA command faild. Implement RCPT TO command before DATA.";
+                        ResponceToClient = "500 DATA command faild. Implement RCPT TO command before DATA.";
 
                         // Message encryption and send to client
                         sm.output.writeUTF(encrypt(ResponceToClient)); // Send the response to Client
@@ -575,6 +575,17 @@ public class ClientHandler {
                 // Message encryption and send to client
                 sm.output.writeUTF(encrypt("\tNOOP \t\tDoes nothing except to get a response from the server.\n"));
                 sm.output.flush();
+            } else if (clientMSG.contains("HELP -VRFY") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+
+                // Message encryption and send to client
+                sm.output.writeUTF(
+                        encrypt("\tVRFY \t\tVerify whether a particular email address or username actually exists.\n"));
+                sm.output.flush();
+            } else if (clientMSG.contains("HELP -EXPN") && GO_ON_CHECKS && !clientMSG.contains(CRLF)) {
+
+                // Message encryption and send to client
+                sm.output.writeUTF(encrypt("\tEXPN \t\tConfirmation about the identification of a mailing list.\n"));
+                sm.output.flush();
             }
 
             // END HELP COMMANDS
@@ -597,8 +608,8 @@ public class ClientHandler {
                     sm.output.writeUTF(encrypt("250 \n\n" + userEmail + " MAILBOX :" + CRLF + mailsList));
                     sm.output.flush();
                 } else {
-                    System.out.println("451 You have not any emails yet.");
-                    sm.output.writeUTF(encrypt("451 You have not any emails yet."));
+                    System.out.println("500 You have not any emails yet.");
+                    sm.output.writeUTF(encrypt("500 You have not any emails yet."));
                     sm.output.flush();
                 }
             }
@@ -613,96 +624,6 @@ public class ClientHandler {
             // console
             System.out.println("Error --> " + except.getMessage());
         }
-    }
-
-}
-
-class Utils {
-    public static String CRLF = "\r\n";
-    public static String EC = " ";
-
-    /**
-     * Return the list of strings from a text file
-     * 
-     * @param filename
-     * @return
-     */
-    public static List<String> getInputFromFile(String filename) {
-        List<String> result = new ArrayList<>();
-        BufferedReader reader;
-        try {
-            reader = new BufferedReader(new FileReader(filename));
-            String line = reader.readLine();
-            while (line != null) {
-                result.add(line);
-                line = reader.readLine();
-            }
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return result;
-    }
-
-    /**
-     * Remove the CRLF from the end of a string if present
-     * 
-     * @param s
-     * @return
-     */
-    public static String stripCRLF(String s) {
-        if (s.endsWith(Utils.CRLF))
-            s = s.substring(0, s.length() - CRLF.length());
-        return s;
-    }
-
-    // Logging Server interactions
-
-    /**
-     * Log sent data to the server
-     * 
-     * @param o
-     */
-    // public static void LogSend(Object o) {
-    // Log(ConsoleColors.BLUE + "Sent: " + ConsoleColors.RESET + o);
-    // }
-
-    /**
-     * Log server responses
-     * 
-     * @param o
-     */
-    // public static void LogReceived(Object o) {
-    // Log(ConsoleColors.GREEN + "Received: " + ConsoleColors.RESET + o);
-    // }
-
-    // /**
-    // * Log errors while interacting with the server
-    // *
-    // * @param o
-    // */
-    // public static void LogError(Object o) {
-    // Log(ConsoleColors.RED + "Error: " + ConsoleColors.RESET + o);
-    // }
-
-    /**
-     * Log a message
-     * 
-     * @param o
-     */
-    // public static void Log(Object o) {
-    // String s = stripCRLF(o.toString());
-    // println(new SimpleDateFormat("yyyy/MM/dd hh:mm:ss").format(new Date()) + ": "
-    // + s);
-    // }
-
-    // Printing to the console
-    public static void println(Object o) {
-        print(o + "\n");
-    }
-
-    public synchronized static void print(Object o) {
-        System.out.print(o);
     }
 
 }

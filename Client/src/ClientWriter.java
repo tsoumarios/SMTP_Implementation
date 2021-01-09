@@ -279,10 +279,10 @@ class ClientWriter implements Runnable {
                         }
                         case "HELP-MAIL": {
                             // CLIENT WRITER SET HELP
-                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("CLIENT WRITER SENDING HELP MAIL");
                             System.out.println("--------------------------");
                             System.out.println(
-                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP MAIL" + CRLF);
 
                             msgToServer = ("HELP -MAIL");
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
@@ -292,10 +292,10 @@ class ClientWriter implements Runnable {
                         }
                         case "HELP-RCPT": {
                             // CLIENT WRITER SET HELP
-                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("CLIENT WRITER SENDING HELP RCPT");
                             System.out.println("--------------------------");
                             System.out.println(
-                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP RCPT" + CRLF);
 
                             msgToServer = ("HELP -RCPT");
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
@@ -305,10 +305,10 @@ class ClientWriter implements Runnable {
                         }
                         case "HELP-DATA": {
                             // CLIENT WRITER SET HELP
-                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("CLIENT WRITER SENDING HELP DATA");
                             System.out.println("--------------------------");
                             System.out.println(
-                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP DATA" + CRLF);
 
                             msgToServer = ("HELP -DATA");
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
@@ -321,7 +321,7 @@ class ClientWriter implements Runnable {
                             System.out.println("CLIENT WRITER SENDING HELP RSET");
                             System.out.println("--------------------------");
                             System.out.println(
-                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP RSET" + CRLF);
 
                             msgToServer = ("HELP -RSET");
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
@@ -334,7 +334,7 @@ class ClientWriter implements Runnable {
                             System.out.println("CLIENT WRITER SENDING HELP QUIT");
                             System.out.println("--------------------------");
                             System.out.println(
-                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP QUIT" + CRLF);
 
                             msgToServer = ("HELP -QUIT");
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
@@ -344,12 +344,38 @@ class ClientWriter implements Runnable {
                         }
                         case "HELP-NOOP": {
                             // CLIENT WRITER SET HELP
-                            System.out.println("CLIENT WRITER SENDING HELP HELO");
+                            System.out.println("CLIENT WRITER SENDING HELP NOOP");
                             System.out.println("--------------------------");
                             System.out.println(
-                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP" + CRLF);
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP NOOP" + CRLF);
 
                             msgToServer = ("HELP -NOOP");
+                            dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "HELP-VRFY": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP VRFY");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP VRFY" + CRLF);
+
+                            msgToServer = ("HELP -VRFY");
+                            dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
+                            dataOut.flush();
+                            break;
+
+                        }
+                        case "HELP-EXPN": {
+                            // CLIENT WRITER SET HELP
+                            System.out.println("CLIENT WRITER SENDING HELP EXPN");
+                            System.out.println("--------------------------");
+                            System.out.println(
+                                    ConsoleColors.BLUE + "Sending..." + EC + ConsoleColors.RESET + "HELP EXPN" + CRLF);
+
+                            msgToServer = ("HELP -EXPN");
                             dataOut.writeUTF(encrypt(msgToServer)); // Data encryption and Send data to clients
                             dataOut.flush();
                             break;
