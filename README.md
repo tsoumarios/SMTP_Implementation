@@ -13,7 +13,7 @@ james_bond@ThatDomain.gr - 123456
 
 ##########################################
 
-# This implemetation can executes the following SMTP commands:
+# This implemetation can execute the following SMTP commands:
 
 HELO, MAIL FROM, RCPT TO, DATA, NOOP, RSET, VRFY, EXPN, HELP, QUIT
 
