@@ -64,12 +64,6 @@ class ClientWriter implements Runnable {
             Scanner user_input = new Scanner(System.in);// Scanner for user input
             DataOutputStream dataOut = new DataOutputStream(cwSocket.getOutputStream()); // Initialize an output
             // stream
-            System.out.println( // Print the List of demo emails and ask user to type an email.
-                    "\n--------------------------\n" + ConsoleColors.PURPLE_UNDERLINED + "Demo Emails:"
-                            + ConsoleColors.RESET
-                            + "\nalice@ThatDomain.gr\nbob@MyTestDomain.gr\njack@ServerDomain.gr\njames_bond@ThatDomain.gr \n"
-                            + ConsoleColors.YELLOW_UNDERLINED + "Password for all users is:" + ConsoleColors.RESET
-                            + " 123456\n" + "--------------------------\n\n");
 
             String email;
 
@@ -82,7 +76,7 @@ class ClientWriter implements Runnable {
                 dataOut.writeUTF(encrypt(email)); // Data encryption and Send data to client
                 dataOut.flush(); // Send user given email address in order to verify and connect
 
-                System.out.println("Please type your password: ");
+                System.out.println("\nPlease type your password: ");
                 String password = user_input.nextLine();
                 // ecryption
                 dataOut.writeUTF(encrypt(password)); // Data encryption and Send data to client
@@ -397,7 +391,7 @@ class ClientWriter implements Runnable {
 
                         default: {
                             System.out.println(ConsoleColors.RED + "Wrong input " + ConsoleColors.RESET + "\n\n");
-                            userChoice();// Print the command board
+
                         }
                     } // switch
 

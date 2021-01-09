@@ -103,18 +103,34 @@ public class ServerConnectionHandler implements Runnable {
                             System.out.println("Given pass: " + userGivenPass);
                             System.out.println("Actual pass: " + userActualPass);
 
-                            // if given password is matches with user's password
-                            if (userActualPass.matches(userGivenPass)) {
+                            // if Known emailList includes the given email
+                            if (KnownEmails.contains(userEmail)) {
 
-                                isLoggedIn = true;
-                                // Print the response
-                                System.out.println("Client " + userEmail + " is connected.");
+                                // if given password is matches with user's password
+                                if (userActualPass.matches(userGivenPass)) {
 
-                                // Send error response to client
-                                _socketMngObjVar.output.writeUTF(encrypt("250 Client " + userEmail + " is connected."));
-                                _socketMngObjVar.output.flush();
+                                    isLoggedIn = true;
+                                    // Print the response
+                                    System.out.println("Client " + userEmail + " is connected.");
 
+                                    // Send error response to client
+                                    _socketMngObjVar.output
+                                            .writeUTF(encrypt("250 Client " + userEmail + " is connected."));
+                                    _socketMngObjVar.output.flush();
+
+                                } else {
+
+                                    // Print the error response
+                                    System.out.println("401 " + userEmail
+                                            + " is valid but you type a wrong password, please try again. Type a valid password. ");
+
+                                    // Encrypt and Send error response to client
+                                    _socketMngObjVar.output.writeUTF(encrypt("401 " + userEmail
+                                            + " is valid but you type a wrong password, please try again. Type a valid password. "));
+                                    _socketMngObjVar.output.flush();
+                                }
                             } else {
+
                                 // Print the error response
                                 System.out.println("550 " + userEmail
                                         + " is a wrong email, please try again. Type a valid email. ");
@@ -123,7 +139,6 @@ public class ServerConnectionHandler implements Runnable {
                                 _socketMngObjVar.output.writeUTF(encrypt("550 " + userEmail
                                         + " is a wrong email, please try again. Type a valid email. "));
                                 _socketMngObjVar.output.flush();
-
                             }
 
                         } while (!isLoggedIn);

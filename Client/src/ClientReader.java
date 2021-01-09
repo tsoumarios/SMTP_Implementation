@@ -110,6 +110,10 @@ class ClientReader implements Runnable {
                             + ConsoleColors.RESET + "\n");
                     isDATAflag.set(true);// In data transmition state
 
+                } else if (BYTESin.contains("401")) {
+                    System.out.println("\nSERVER response: " + BYTESin);
+                    System.out.println(ConsoleColors.RED + "SERVER Error--> Access denied. Unauthorized user"
+                            + ConsoleColors.RESET + "\n");
                 } else if (BYTESin.contains("420"))
                     System.out.println(ConsoleColors.RED + "SERVER Error--> Timeout connection problem."
                             + ConsoleColors.RESET + "\n");

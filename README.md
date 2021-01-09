@@ -6,9 +6,9 @@ List of user emails and passwords provided to loging the app:
 
 ##########################################
 
+jack@ServerDomain.gr - 123456
 alice@ThatDomain.gr - 123456
 bob@MyTestDomain.gr - 123456
-jack@ServerDomain.gr - 123456
 james_bond@ThatDomain.gr - 123456
 
 ##########################################
@@ -27,7 +27,7 @@ HELO, MAIL FROM, RCPT TO, DATA, NOOP, RSET, VRFY, EXPN, HELP, QUIT
 
 4. Start the SMTP command sequence
 
-This implementation supports Mailbox functionality. To access this,
+This implementation supports Mailbox functionality only for recipients. To access this,
 type "mailbox". User should be logged in to the system to receive the mailbox.
 
 # Explanation of the program
