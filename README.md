@@ -2,7 +2,7 @@
 
 This is a simple implementation of SMTP protocol with JAVA.
 
-List of user emails and passwords provided to loging the app:
+List of user emails and passwords provided to logging the app:
 
 ##########################################
 
